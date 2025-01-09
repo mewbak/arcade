@@ -391,7 +391,10 @@ DeclarationsDict = dict[
 
 # Patterns + default config dict
 CLASS_RE = re.compile(r"^class ([A-Za-z0-9]+[^\(:]*)")
-FUNCTION_RE = re.compile("^def ([a-z][a-z0-9_]*)")
+# Yes, the capital letters in this pattern are intentional. They
+# capture type instantiation helpers which act like type init calls
+# in the rect, box, and other modules.
+FUNCTION_RE = re.compile("^def ([a-zA-Z][a-zA-Z0-9_]*)")
 TYPE_RE = re.compile("^(?!LOG =)([A-Za-z][A-Za-z0-9_]*) =")
 DEFAULT_EXPRESSIONS =  {
     'class': CLASS_RE,
