@@ -70,7 +70,8 @@ API_FILE_TO_TITLE_AND_MODULES = {
             "arcade.types.numbers",
             "arcade.types.vector_like",
             "arcade.types.color",
-            "arcade.types.rect"
+            "arcade.types.rect",
+            "arcade.types.box"
         ]
     },
     "resources.rst": {
