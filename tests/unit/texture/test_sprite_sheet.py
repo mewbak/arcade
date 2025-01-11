@@ -1,3 +1,4 @@
+from arcade.types.rect import LBWH
 import pytest
 from PIL import Image
 import arcade
@@ -74,24 +75,18 @@ def test_get_image(sprite_sheet):
 
     # Crop out the dollar sign using upper left origin
     im = sprite_sheet.get_image(
-        x=9 * 4,  # 4th column
-        y=16,  # second row
-        width=8,
-        height=16,
-        origin="upper_left",
-    )
+        LBWH(9 * 4,  # 4th column
+        16,  # second row
+        8, 16))
     assert isinstance(im, Image.Image)
     assert im.size == (8, 16)
     assert im.tobytes() == dollar_sign.tobytes()
 
     # Crop out the dollar sign using lower left origin
     im = sprite_sheet.get_image(
-        x=9 * 4,  # 4th column
-        y=16 * 6,  # 6th row
-        width=8,
-        height=16,
-        origin="lower_left",
-    )
+        LBWH(9 * 4,  # 4th column
+        16 * 6,  # 6th row
+        8,16), True)
     assert isinstance(im, Image.Image)
     assert im.size == (8, 16)
     assert im.tobytes() == dollar_sign.tobytes()
@@ -99,7 +94,7 @@ def test_get_image(sprite_sheet):
 
 def test_get_texture(sprite_sheet):
     """Get a texture from the sprite sheet."""
-    texture = sprite_sheet.get_texture(0, 0, 8, 16)
+    texture = sprite_sheet.get_texture(LBWH(0, 0, 8, 16))
     assert isinstance(texture, arcade.Texture)
     assert texture.image.size == (8, 16)
 

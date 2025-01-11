@@ -10,6 +10,7 @@ from arcade.resources import resolve
 
 # from arcade import Texture
 from arcade.texture import Texture
+from arcade.types.rect import Rect
 
 if TYPE_CHECKING:
     from arcade.hitbox import HitBoxAlgorithm
@@ -102,68 +103,55 @@ class SpriteSheet:
         self._image = self._image.transpose(Transpose.FLIP_TOP_BOTTOM)
         self._flip_flags = (self._flip_flags[0], not self._flip_flags[1])
 
-    def get_image(
-        self, x: int, y: int, width: int, height: int, origin: OriginChoices = "upper_left"
-    ) -> Image.Image:
+    def get_image(self, rect: Rect, y_up=False) -> Image.Image:
         """
         Slice out an image from the sprite sheet.
 
         Args:
-            x:
-                X position of the image
-            y:
-                Y position of the image
-            width:
-                Width of the image.
-            height:
-                Height of the image.
-            origin:
-                Origin of the image. Default is "upper_left".
-                Options are "upper_left" or "lower_left".
+            rect:
+                The rectangle to crop out.
+            y_up:
+                Sets the coordinate space of the image to assert (0, 0)
+                in the bottom left.
         """
         # PIL box is a 4-tuple: left, upper, right, and lower
-        if origin == "upper_left":
-            return self.image.crop((x, y, x + width, y + height))
-        elif origin == "lower_left":
+        if y_up:
             return self.image.crop(
-                (x, self.image.height - y - height, x + width, self.image.height - y)
+                (
+                    rect.left,
+                    self.image.height - rect.bottom - rect.height,
+                    rect.right,
+                    self.image.height - rect.bottom,
+                )
             )
         else:
-            raise ValueError("Invalid value for origin. Must be 'upper_left' or 'lower_left'.")
+            return self.image.crop(
+                (
+                    rect.left,
+                    rect.bottom,
+                    rect.right,
+                    rect.top,
+                )
+            )
 
     # slice an image out of the sprite sheet
     def get_texture(
-        self,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
-        hit_box_algorithm: HitBoxAlgorithm | None = None,
-        origin: OriginChoices = "upper_left",
+        self, rect: Rect, hit_box_algorithm: HitBoxAlgorithm | None = None, y_up=False
     ) -> Texture:
         """
         Slice out texture from the sprite sheet.
 
         Args:
-            x:
-                X position of the texture (lower left corner).
-            y:
-                Y position of the texture (lower left corner).
-            width:
-                Width of the texture.
-            height:
-                Height of the texture.
+            rect:
+                The rectangle to crop out.
             hit_box_algorithm:
                 Hit box algorithm to use for the texture.
                 If not provided, the default hit box algorithm will be used.
-            origin:
-                Origin of the texture. Default is "upper_left".
-                Options are "upper_left" or "lower_left".
         """
-        im = self.get_image(x, y, width, height, origin=origin)
+        im = self.get_image(rect, y_up)
         texture = Texture(im, hit_box_algorithm=hit_box_algorithm)
         texture.file_path = self._path
-        texture.crop_values = x, y, width, height
+        texture.crop_values = rect.lbwh_int
         return texture
 
     def get_image_grid(

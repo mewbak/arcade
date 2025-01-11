@@ -14,6 +14,7 @@ from arcade.cache import (
     TextureCache,
 )
 from arcade.texture import ImageData, SpriteSheet
+from arcade.types.rect import Rect
 
 from .texture import Texture
 
@@ -128,10 +129,7 @@ class TextureCacheManager:
     def load_or_get_spritesheet_texture(
         self,
         path: str | Path,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
+        rect: Rect,
         hit_box_algorithm: hitbox.HitBoxAlgorithm | None = None,
     ) -> Texture:
         """
@@ -155,7 +153,7 @@ class TextureCacheManager:
                 Hit box algorithm to use. If not specified, the global default will be used.
         """
         real_path = self._get_real_path(path)
-        texture = self._texture_cache.get_texture_by_filepath(real_path, crop=(x, y, width, height))
+        texture = self._texture_cache.get_texture_by_filepath(real_path, crop=rect.lbwh_int)
         if texture:
             return texture
 
@@ -163,14 +161,14 @@ class TextureCacheManager:
         sprite_sheet = self.load_or_get_spritesheet(real_path)
 
         # slice out the texture and cache + return
-        texture = sprite_sheet.get_texture(x, y, width, height, hit_box_algorithm=hit_box_algorithm)
+        texture = sprite_sheet.get_texture(rect, hit_box_algorithm=hit_box_algorithm)
         self._texture_cache.put(texture)
         if texture.image_cache_name:
             self._image_data_cache.put(texture.image_cache_name, texture.image_data)
 
         # Add to image data cache
         self._image_data_cache.put(
-            Texture.create_image_cache_name(real_path, (x, y, width, height)),
+            Texture.create_image_cache_name(real_path, rect.lbwh_int),
             texture.image_data,
         )
 

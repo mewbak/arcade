@@ -1,5 +1,6 @@
 import arcade
 from arcade.experimental.crt_filter import CRTFilter
+from arcade.types.rect import LBWH
 from pyglet.math import Vec2
 
 
@@ -35,11 +36,11 @@ class MyGame(arcade.Window):
 
         # Slice out some textures from the sprite sheet
         spritesheet = arcade.load_spritesheet("pac_man_sprite_sheet.png")
-        ghost_red = spritesheet.get_texture(x=4, y=65, width=13, height=15)
-        pink_ghost = spritesheet.get_texture(x=4, y=81, width=13, height=15)
-        pacman_1 = spritesheet.get_texture(x=4, y=1, width=13, height=15)
-        pacman_2 = spritesheet.get_texture(x=20, y=1, width=13, height=15)
-        pacman_3 = spritesheet.get_texture(x=36, y=1, width=13, height=15)
+        ghost_red = spritesheet.get_texture(LBWH(4, 65, 13, 15))
+        pink_ghost = spritesheet.get_texture(LBWH(4, 81, 13, 15))
+        pacman_1 = spritesheet.get_texture(LBWH(4, 1, 13, 15))
+        pacman_2 = spritesheet.get_texture(LBWH(20, 1, 13, 15))
+        pacman_3 = spritesheet.get_texture(LBWH(36, 1, 13, 15))
 
         # Create sprite for the red ghost with some movement and add it to the sprite list
         sprite = arcade.Sprite(ghost_red, center_x=100, center_y=300, scale=5.0)
