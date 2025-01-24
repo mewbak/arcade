@@ -214,17 +214,119 @@ table.dataTable.display tbody tr.even > .sorting_1 {
     background-repeat: repeat;
 }
 
+
+/*Test*/
 table.resource-table {
     empty-cells: hide;
+    white-space: normal;  /* table behavior for CSS styling? maybe dupe of below. */
 }
+
 /* Make the resource page's table cell contents look neat */
-table.resource-table td {
+
+/* copy button doesn't need so much margin in here */
+.resource-table div.highlight-python {
+  margin-bottom: 0;
+}
+
+/* Only center the contents of tiles which have images in them
+ * NOTE: The * instead of table alloes for non-table resource tiles
+ */
+*.resource-table td:has(.resource-thumb) {
     text-align: center;
 }
-table.resource-table td > img {
+.resource-table,
+.resource-table table
+ {
+    width: 100%;
+    max-width: 100%;
+}
+.wy-table-responsive table :is(th, td) { white-space: normal; }
+/* Prevent huge copyable areas for .. code:: boxes using sphinx-copybutton  */
+.resource-table div.highlight > pre {
+    padding: 8px;
+}
+
+table.resource-table td > .resource-thumb {
     display: inline-block;
+}
+table.resource-table td > img.resource-thumb {
     /* Maximum 20% of the smallest display dimension */
     max-width: min(20vw, 20vh);
+}
+table.resource-table td > .resource-thumb.file-icon {
+    width: 128px;
+    height: 128px;
+    max-width: 128px;
+    max-height: 128px;
+}
+
+
+.resource-handle {
+    display: inline-block;
+    border-radius: 0.4em;
+    border: 1px solid rgb(0, 0, 0, 0);
+    width: fit-content !important;
+}
+.resource-handle:has(button.arcade-ezcopy:hover) {
+    border-color: #54c079;
+    color: #54c079;
+}
+.resource-table .caption-text > .literal,
+.resource-handle > .literal {
+    font-style: normal;
+    height: 1.5em;
+    min-height: 1.5em;
+    border-radius: 0.4em;
+    border: 1px solid #1b1f2426;
+    vertical-align: middle;
+    /* Not clear why this doesn't work for the .caption-text */
+    font-size: 1em !important;
+}
+
+
+/* Imitate sphinx-copybutton style */
+.arcade-ezcopy {
+    width: 1.5em;
+    height: 1.5em;
+    min-width: 1.5em;
+    min-height: 1.5em;
+    padding: 0;
+
+    /* Imitate sphinx-copybutton minus styling spacing issues */
+    border-radius: 0.4em 0.4em 0.4em 0.4em;
+    border: 1px solid #1b1f2426;
+
+    border-left: 0;
+
+    color: #57606a;
+    background-color: #f6f8fa;
+
+}
+/* Hide left border on items which haven adjacent copy button
+
+   CAVEAT: This won't currently work with right-to-left layout modes!
+
+   This is because of the following assume left-to-right:
+
+   1. The + here assumes the button element's next in the DOM order
+   2. The right border of the box gets switched off
+ */
+.resource-table * > .literal:has(+ button.arcade-ezcopy) {
+     border-radius: 0.4em 0 0 0.4em !important;
+}
+.resource-table  .literal + button.arcade-ezcopy {
+     border-radius: 0 0.4em 0.4em 0 !important;
+}
+
+
+
+.arcade-ezcopy > img {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+}
+.arcade-ezcopy:hover {
+  background-color: #54c079;
 }
 
 table.colorTable {

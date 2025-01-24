@@ -55,13 +55,14 @@ function handleSidebarHeaderToggle() {
     registerOnScrollEvent(mediaQuery);
   }
 }
-
-
 /**
  * Load all custom code only once the DOM document has fully loaded.
  *
  * Notice that jQuery is already available in this file.
  */
 $(document).ready(() => {
-  handleSidebarHeaderToggle()
+  handleSidebarHeaderToggle();
+  // Re-use the base ClipboardJS provided by sphinx-copybutton
+  // .doc-ui-example-dummy marks a button as a training dummy on the resources page and elsewhere
+  document.ezcopy = new ClipboardJS('.arcade-ezcopy:not(.doc-ui-example-dummy');
 });

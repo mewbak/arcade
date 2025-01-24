@@ -14,6 +14,10 @@ import sphinx.ext.autodoc
 import sphinx.transforms
 import sys
 
+from docutils import nodes
+from docutils.nodes import literal
+from sphinx.util.docutils import SphinxRole
+
 # As of pyglet==2.1.dev7, this is no longer set in pyglet/__init__.py
 # because Jupyter / IPython always load Sphinx into sys.modules. See
 # the following for more info:
@@ -166,7 +170,7 @@ language = "en"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns = [
-    "links.rst",
+    "_includes/*",
     "substitutions.rst",
     "_archive/*",
 ]
@@ -247,15 +251,22 @@ intersphinx_mapping = {
     'pymunk': ('https://www.pymunk.org/en/latest/', None),
 }
 
-
 # These will be joined as one block and prepended to every source file.
 # Substitutions for |version| and |release| are predefined by Sphinx.
 PROLOG_PARTS = [
     #".. include:: /links.rst",
     ".. |pyglet Player| replace:: pyglet :py:class:`~pyglet.media.player.Player`",
-    ".. _Arcade's License File on GitHub: {FMT_URL_REF_BASE}/license.rst"
+    ".. _Arcade's License File on GitHub: {FMT_URL_REF_BASE}/license.rst",
+
+    (  # Allows explaining how to copy anywhere in the doc.
+        '.. |Example Copy Button| raw:: html\n\n'
+        '   <div class="arcade-ezcopy doc-ui-example-dummy" style="display: inline-block;">\n'
+        '      <img src="/_static/copy-button.svg"/>\n\n'
+        '   </div>\n\n'
+    )
+
 ]
-with open("links.rst") as f:
+with open("_includes/links.rst") as f:
     PROLOG_PARTS.extend(f.readlines())
 
 rst_prolog = "\n".join(PROLOG_PARTS)
@@ -409,6 +420,29 @@ APP_CONFIG_DIRS = (
     A('doctreedir'),
 )
 
+
+class ResourceRole(SphinxRole):  # pending: 3.1
+    """Get resource file and category cross-references sorta working.
+
+    This needs improvement.
+    """
+    def run(self) -> tuple[list[nodes.Node], list[nodes.system_message]]:
+        raw = self.text.removeprefix(":resource:")
+        page_id =  self.text\
+            .replace(':', '')\
+            .replace('/', '-')\
+            .replace('_', '-')\
+            .replace('.', '-')
+
+        filename = f"'{raw.split('/')[-1]}'"
+        node = nodes.reference(text=filename, refuri=''.join([
+             '/api_docs/resources.html#', page_id]),
+            )
+
+        print("HALP?", locals())
+        return [node], []
+
+
 def setup(app):
     print("Diagnostic info since readthedocs doesn't use our make.py:")
     for attr, comment in APP_CONFIG_DIRS:
@@ -432,7 +466,7 @@ def setup(app):
     app.connect('autodoc-process-signature', strip_init_return_typehint, -1000)
     app.connect('autodoc-process-bases', on_autodoc_process_bases)
     # app.add_transform(Transform)
-
+    app.add_role('resource', ResourceRole())
 
 # ------------------------------------------------------
 # Old hacks that breaks the api docs. !!! DO NOT USE !!!
