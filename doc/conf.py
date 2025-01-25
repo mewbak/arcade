@@ -1,22 +1,33 @@
 #!/usr/bin/env python
 """Sphinx configuration file"""
 from __future__ import annotations
+
 from functools import cache
 import logging
 from pathlib import Path
-from textwrap import dedent
 from typing import Any, NamedTuple
-import docutils.nodes
-import os
 import re
 import runpy
-import sphinx.ext.autodoc
-import sphinx.transforms
 import sys
 
 from docutils import nodes
-from docutils.nodes import literal
 from sphinx.util.docutils import SphinxRole
+
+HERE = Path(__file__).resolve()
+REPO_LOCAL_ROOT = HERE.parent.parent
+ARCADE_MODULE = REPO_LOCAL_ROOT / "arcade"
+UTIL_DIR = REPO_LOCAL_ROOT / "util"
+
+log = logging.getLogger('conf.py')
+logging.basicConfig(level=logging.INFO)
+
+sys.path.insert(0, str(REPO_LOCAL_ROOT))
+sys.path.insert(0, str(ARCADE_MODULE))
+log.info(f"Inserted elements in system path: First two are now:")
+for i in range(2):
+    log.info(f"  {i}: {sys.path[i]!r}")
+
+from util.doc_helpers.real_filesystem import copy_media
 
 # As of pyglet==2.1.dev7, this is no longer set in pyglet/__init__.py
 # because Jupyter / IPython always load Sphinx into sys.modules. See
@@ -27,15 +38,7 @@ sys.is_pyglet_doc_run = True
 
 # --- Pre-processing Tasks
 
-log = logging.getLogger('conf.py')
-logging.basicConfig(level=logging.INFO)
-
-HERE = Path(__file__).resolve()
-REPO_LOCAL_ROOT = HERE.parent.parent
-
-ARCADE_MODULE = REPO_LOCAL_ROOT / "arcade"
-UTIL_DIR = REPO_LOCAL_ROOT / "util"
-
+# Report our diagnostic info
 log.info(f"Absolute path for our conf.py       : {str(HERE)!r}")
 log.info(f"Absolute path for the repo root     : {str(REPO_LOCAL_ROOT)!r}")
 log.info(f"Absolute path for the arcade module : {str(REPO_LOCAL_ROOT)!r}")
@@ -43,28 +46,39 @@ log.info(f"Absolute path for the util dir      : {str(UTIL_DIR)!r}")
 
 # _temp_version = (REPO_LOCAL_ROOT / "arcade" / "VERSION").read_text().replace("-",'')
 
-sys.path.insert(0, str(REPO_LOCAL_ROOT))
-sys.path.insert(0, str(ARCADE_MODULE))
-log.info(f"Inserted elements in system path: First two are now:")
-for i in range(2):
-    log.info(f"  {i}: {sys.path[i]!r}")
-
 # Don't change to
 # from arcade.version import VERSION
 # or read the docs build will fail.
 from version import VERSION # pyright: ignore [reportMissingImports]
-log.info(f"Got version {VERSION!r}")
+log.info(f" Got version {VERSION!r}")
 
-REPO_URL_BASE="https://github.com/pythonarcade/arcade"
-if 'dev' in VERSION:
-    GIT_REF = 'development'
-    log.info(f"Got .dev release: using {GIT_REF!r}")
-else:
+
+# Check whether the version ends in an all-digit string
+VERSION_PARTS = []
+for part in VERSION.split('.'):
+    if part.isdigit():
+        VERSION_PARTS.append(int(part))
+    else:
+        VERSION_PARTS.append(part)
+
+print()
+if VERSION_PARTS[-1].isdigit():
     GIT_REF = VERSION
-    log.info(f"Got real release: using {GIT_REF!r}")
+    log.info(" !!!!! APPEARS TO BE A REAL RELEASE  !!!!!")
+else:
+    GIT_REF = 'development'
+    log.info(" - - -   Building as a dev release   - - -")
+
+print()
+print(f"   {GIT_REF=!r}")
+print(f"   {VERSION=!r}")
+print()
+
 
 # We'll pass this to our generation scripts to initialize their globals
+REPO_URL_BASE="https://github.com/pythonarcade/arcade"
 FMT_URL_REF_BASE=f"{REPO_URL_BASE}/blob/{GIT_REF}"
+
 RESOURCE_GLOBALS = dict(
     GIT_REF=GIT_REF,
     BASE_URL_REPO=REPO_URL_BASE,
@@ -104,6 +118,22 @@ run_util("create_resources_listing.py", init_globals=RESOURCE_GLOBALS)
 # Run the generate quick API index script
 run_util('../util/update_quick_index.py')
 
+
+src_res_dir = ARCADE_MODULE / 'resources/assets'
+out_res_dir = REPO_LOCAL_ROOT / 'build/html/_static/assets'
+
+# pending: post-3.0 cleanup to find the right source events to make this work?
+# if exc or app.builder.format != "html":
+#     return
+# static_dir = (app.outdir / '_static').resolve()
+copy_what = {  # pending: post-3.0 cleanup to tie this into resource generation correctly
+    'sounds': ('*.wav', '*.ogg', '*.mp3'),
+    'music': ('*.wav', '*.ogg', '*.mp3'),
+    'video': ('*.mp4', '*.webm', )
+}
+copy_media(src_res_dir, out_res_dir, copy_what)
+
+
 autodoc_inherit_docstrings = False
 autodoc_default_options = {
     'members': True,
@@ -135,6 +165,12 @@ extensions = [
     'sphinx_sitemap',  # sitemap.xml generation
     'doc.extensions.prettyspecialmethods',  # Forker plugin for prettifying special methods
 ]
+
+# pending: post-3.0 cleanup:
+# 1. Setting this breaks the CSS for both the plugin's buttons and our "custom" ones
+# 2. Since our custom ones are only on the gui page for now, it's okay
+# Note: tabler doesn't require attribution + it's the original theme for this icon set
+# copybutton_image_svg = (REPO_LOCAL_ROOT / "doc/_static/icons/tabler/copy.svg").read_text()
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -272,7 +308,6 @@ with open("_includes/links.rst") as f:
 rst_prolog = "\n".join(PROLOG_PARTS)
 
 
-
 def strip_init_return_typehint(app, what, name, obj, options, signature, return_annotation):
     # Prevent a the `-> None` annotation from appearing after classes.
     # This annotation comes from the `__init__`, but it renders on the class,
@@ -280,6 +315,7 @@ def strip_init_return_typehint(app, what, name, obj, options, signature, return_
     # From the user's perspective, this is wrong: `Foo() -> Foo` not `None`
     if what == "class" and return_annotation is None:
         return (signature, None)
+
 
 def inspect_docstring_for_member(
     _app,
@@ -407,7 +443,6 @@ def on_autodoc_process_bases(app, name, obj, options, bases):
     bases[:] = [base for base in bases if base is not object]
 
 
-
 class A(NamedTuple):
     dirname: str
     comment: str = ""
@@ -439,7 +474,7 @@ class ResourceRole(SphinxRole):  # pending: 3.1
              '/api_docs/resources.html#', page_id]),
             )
 
-        print("HALP?", locals())
+        log.info(" Attempted ResourceRole", locals())
         return [node], []
 
 
@@ -452,6 +487,7 @@ def setup(app):
             print(f"    {comment}")
 
     # Separate stylesheets loosely by category.
+    # pending:  sphinx >= 8.1.4 to remove the sphinx_static_file_temp_fix.py
     app.add_css_file("css/colors.css")
     app.add_css_file("css/layout.css")
     app.add_css_file("css/custom.css")
@@ -467,6 +503,8 @@ def setup(app):
     app.connect('autodoc-process-bases', on_autodoc_process_bases)
     # app.add_transform(Transform)
     app.add_role('resource', ResourceRole())
+    # Don't do anything that can fail on this event or it'll kill your build hard
+    # app.connect('build-finished', throws_exception)
 
 # ------------------------------------------------------
 # Old hacks that breaks the api docs. !!! DO NOT USE !!!

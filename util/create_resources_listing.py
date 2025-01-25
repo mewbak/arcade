@@ -64,6 +64,7 @@ except Exception as _:
 MODULE_DIR = Path(__file__).parent.resolve()
 ARCADE_ROOT = MODULE_DIR.parent
 RESOURCE_DIR = ARCADE_ROOT / "arcade" / "resources"
+ASSET_DIR = RESOURCE_DIR / "assets"
 DOC_ROOT = ARCADE_ROOT / "doc"
 INCLUDES_ROOT = DOC_ROOT / "_includes"
 OUT_FILE = DOC_ROOT / "api_docs" / "resources.rst"
@@ -135,7 +136,7 @@ class TableConfigDict(TypedDict):
 
 
 class HeadingConfigDict(TypedDict):
-    ref_target: NotRequired[str]
+    ref_target: NotRequired[str | bool]
     skip: NotRequired[bool]
     value: NotRequired[str]
     level: NotRequired[int]
@@ -143,7 +144,7 @@ class HeadingConfigDict(TypedDict):
 
 class HandleLevelConfigDict(TypedDict):
     heading: NotRequired[HeadingConfigDict]
-    include: NotRequired[str]
+    include: NotRequired[str | bool]
     list_table: NotRequired[TableConfigDict]
 
 
@@ -197,6 +198,14 @@ RESOURCE_HANDLE_CONFIGS: dict[str,HandleLevelConfigDict] = {
     },
     ":resources:/gui_basic_assets/window/": {
         "heading": {"value": "Window & Panel"}
+    },
+    ":resources:/video/": {
+        # pending: post-3.0 cleanup # trains are hats
+        # "heading:": {
+        #     "value": "Video",
+        #     "ref_target": "resources_video"
+        # },
+        "include": "resources_Video.rst"
     }
 }
 
@@ -237,7 +246,7 @@ def do_heading(
         out,
         relative_heading_level: int,
         heading_text: str,
-        ref_target: str | None = None
+        ref_target: str | bool | None = None
 ) -> None:
     """Writes a heading to the output file.
 
@@ -254,8 +263,10 @@ def do_heading(
     print(f"doing heading: {heading_text!r} {relative_heading_level}")
     num_headings = len(headings_lookup)
 
+    if ref_target is True:
+        ref_target = f"resources-{heading_text}.rst"
     if ref_target:
-        out.write(f".. _{ref_target}:\n\n")
+        out.write(f".. _{ref_target.lower()}:\n\n")
 
     if relative_heading_level >= num_headings:
         # pending: post-3.0 cleanup
@@ -415,16 +426,20 @@ def process_resource_directory(out, dir: Path):
 
                 # Heading config fetch and write
                 use_level = local_heading_config.get('level', heading_level)
-                use_target = local_heading_config.get('ref_target', None)
                 use_value = local_heading_config.get('value', None)
                 if use_value is None:
                     use_value = format_title_part(handle_steps_parts[heading_level])
+                use_target = local_heading_config.get('ref_target', None)
+                if isinstance(use_target, bool) and use_target:
+                    use_target = f"resources_{use_value.lower()}"
 
                 do_heading(out, use_level, use_value, ref_target=use_target)
                 out.write(f"\n.. comment `{handle_step_whole!r}``\n\n")
 
                 # Include any include .rst  # pending: inline via pluginification
                 if include := local_config.get("include", None):
+                    if isinstance(include, bool) and include:
+                        include = f"resources_{use_value}.rst"
                     if isinstance(include, str):
                         include = INCLUDES_ROOT / include
                     log.info(f"     INCLUDE: Include resolving to {include})")
@@ -461,6 +476,10 @@ def indent(  # pending: post-3.0 refactor  # why would indent come after the tex
 
     return new.getvalue()
 
+# pending: post-3.0 cleanup, I don't have time to make this CSS nice right now.
+COPY_BUTTON_PATH = "_static/icons/tabler/copy.svg"
+#COPY_BUTTON_RAW = (DOC_ROOT / "_static/icons/tabler/copy.svg").read_text().strip() + "\n"
+
 
 def html_copyable(
         value: str,
@@ -470,14 +489,14 @@ def html_copyable(
     if string_quote_char:
         value = f"{string_quote_char}{value}{string_quote_char}"
     escaped = html.escape(value)
-
     raw = (
         f"<span class=\"resource-handle\">\n"
         f"    <code class=\"docutils literal notranslate\">\n"
         f"        <span class=\"pre\">{escaped}</span>\n"
         f"    </code>\n"
         f"    <button class=\"arcade-ezcopy\" data-clipboard-text=\"{resource_handle}\">\n"
-        f"        <img src=\"/_static/copy-button.svg\"/>\n"
+        f"        <img src=\"/{COPY_BUTTON_PATH}\"/>\n"
+        # + indent("    " * 2, COPY_BUTTON_RAW) +  # pending: post-3.0 cleanup
         f"    </button>\n"
         f"</span>\n"
         f"<br/>\n\n")
@@ -693,15 +712,17 @@ def process_resource_files(
             config = MEDIA_EMBED[suffix]
             kind = config.get('media_kind')
             mime_suffix = config.get('mime_suffix')
-            file_path = FMT_URL_REF_EMBED.format(resource_path)
-
+            # file_path = FMT_URL_REF_EMBED.format(resource_path)
+            rel = path.relative_to(RESOURCE_DIR)
+            file_path = f"/_static/{str(rel)}"
             out.write(f"    {start()} - .. raw:: html\n\n")
             out.write(indent(
                 "           ", resource_copyable))
 
             out.write(f"        .. raw:: html\n\n")
             out.write(indent("           ",
-                      f"<{kind} class=\"resource-thumb\" controls>\n"
+                      # Using preload="none" is gentler on GitHub and readthedocs
+                      f"<{kind} class=\"resource-thumb\" controls preload=\"none\">\n"
                       f"  <source src='{file_path}' type='{kind}/{mime_suffix}'>\n"
                       f"</{kind}>\n\n"))
 
@@ -741,11 +762,25 @@ def resources():
 
     do_heading(out, 0, "Built-In Resources")
 
-    out.write("\n\n:resource:`:resources:/gui_basic_assets/window/panel_green.png`\n\n")
+    # pending: post-3.0 cleanup: get the linking working
+    # out.write("\n\n:resource:`:resources:/gui_basic_assets/window/panel_green.png`\n\n")
     # out.write("Linking test: :ref:`resources-gui-basic-assets-window-panel-green-png`.\n")
-    out.write("Every file below is included when you :ref:`install Arcade <install>`. This includes the images,\n"
-              "sounds, fonts, and other files to help you get started quickly. You can still download them\n"
-              "separately, but Arcade's resource handle system will usually be easier.\n")
+
+    out.write("Every file below is included when you :ref:`install Arcade <install>`.\n\n"
+              "Afterward, you can try running one of Arcade's :py:ref:`examples <example-code>`,\n"
+              "such as the one below:\n\n"
+              ".. code-block:: shell\n"
+              "   :caption: Taken from :ref:`sprite_collect_coins`\n"
+              "\n"
+              "   python -m arcade.examples.sprite_collect_coins\n"
+              "\n"
+              "If the example mini-game runs, every image, sound, font, and example Tiled map below should\n"
+              "work with zero additional software. You can still download the resources from this page for\n"
+              "convenience, or visit `Kenney.nl`_ for more permissively licensed game assets.\n"
+              "\n" 
+              "The one feature which may require additional software is Arcade's experimental video playback\n"
+              "support. The :ref:`resources_video` section below will explain further.\n")
+
     do_heading(out, 1, "Do I have to credit anyone?")
     # Injecting the links.rst doesn't seem to be working?
     out.write("That's a good question and one you should always ask when searching for assets online.\n"
@@ -754,7 +789,7 @@ def resources():
               "are specifically released under `CC0  <https://creativecommons.org/publicdomain/#publicdomain-cc0-10>`_"
               " or similar terms.\n")
     out.write("Most are from `Kenney.nl <https://kenney.nl/>`_.\n") # pending: post-3.0 cleanup.
-
+    logo = html.escape("'logo.png'")
     do_heading(out, 1, "How do I use these?")
     out.write(
         # '.. |Example Copy Button| raw:: html\n\n'
@@ -762,17 +797,17 @@ def resources():
         # '      <img src="/_static/copy-button.svg"/>\n\n'
         # '   </div>\n\n'
         # +
-        "Arcade helps save time through  **resource handle** strings. These strings start with\n"
-        "``':resources:'``. After  you've installed Arcade, you'll need to:\n\n"
-        "#. Find the copy button (|Example Copy Button|) after a filename below\n"
-        "#. Click it to copy the string, such as ``':resources:/logo.png'``\n"
-        "#. Use the appropriate loading functions to load and display the data\n\n"
-        "Try it below with the Arcade logo, or see the following to learn more\n:"
-        "\n\n"
-        "* :ref:`Sprite Examples <sprite_examples>` for example code\n"
-        "* :ref:`The Platformer Tutorial <platformer_tutorial>` for step-by-step guidance\n"
-        "* The :ref:`resource_handles` page of the manual covers them in more depth\n"
-        "\n"
+        f"Each file preview below has the following items above it:\n\n"
+        f".. raw:: html\n\n"
+        f"   <ol>\n"
+        f"      <li>A <strong>file name</strong> as a single-quoted string (<code class=\"docutils literal notranslate\"><span class=\"pre\">{logo}</span></code>)</li>\n"
+        f"      <li>A <strong>copy button</strong> to the right of the string (<div class=\"arcade-ezcopy doc-ui-example-dummy\" style=\"display: inline-block;\">"
+        f"<img src=\"/_static/icons/tabler/copy.svg\"></div>)</li>\n"
+        f"   </ol>\n\n"
+        +
+        "Click the button above a preview to copy the **resource handle** string for loading the asset.\n"
+        "Any image or sound on this page should work after installing Arcade with zero additional dependencies.\n"
+        "Full example code and manual sections for any relevant functions are linked below."
     )
 
     out.write("\n")
