@@ -450,8 +450,6 @@ class Projector(Protocol):
         Args:
             screen_coordinate: A 2D position in pixels should generally be inside
                 the range of the active viewport.
-            depth: The depth of the query. This can be though of how far along the forward vector
-                   the final coord will be.
         Returns:
             A 3D vector in world space.
         """

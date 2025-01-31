@@ -1388,9 +1388,9 @@ class View:
                 Change in x since the last time this method was called
             dy:
                 Change in y since the last time this method was called
-            buttons:
+            _buttons:
                 Which button is pressed
-            modifiers:
+            _modifiers:
                 Bitwise 'and' of all modifiers (shift, ctrl, num lock)
                 active during this event. See :ref:`keyboard_modifiers`.
         """
@@ -1493,9 +1493,9 @@ class View:
         * Showing which keys are currently pressed down
 
         Args:
-            symbol:
+            _symbol:
                 Key that was released
-            modifiers:
+            _modifiers:
                 Bitwise 'and' of all modifiers (shift, ctrl, num lock) active
                 during this event. See :ref:`keyboard_modifiers`.
         """

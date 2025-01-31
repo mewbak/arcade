@@ -253,9 +253,6 @@ class AStarBarrierList:
             Bottom of playing field
         top (int):
             Top of playing field
-        barrier_list:
-            SpriteList of barriers to use in _AStarSearch,
-            ``None`` if not recalculated
 
     Attributes:
         grid_size:
