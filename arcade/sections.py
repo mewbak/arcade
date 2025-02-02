@@ -425,8 +425,8 @@ class Section:
         Called when the user releases a key.
 
         Args:
-            symbol: the key released
-            modifiers: the modifiers pressed
+            _symbol: the key released
+            _modifiers: the modifiers pressed
         """
         pass
 

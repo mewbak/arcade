@@ -207,9 +207,9 @@ def draw_lbwh_rectangle_outline(
     Draw a rectangle extending from bottom left to top right
 
     Args:
-        bottom_left_x:
+        left:
             The x coordinate of the left edge of the rectangle.
-        bottom_left_y:
+        bottom:
             The y coordinate of the bottom of the rectangle.
         width:
             The width of the rectangle.
