@@ -343,13 +343,14 @@ class Camera2D:
         Should be called when the window is resized.
 
         Args:
-            and_projection: Flag whether to also equalize the projection to the viewport.
+            viewport: Flag whether to equalise the viewport to the value.
+            projection: Flag whether to also equalize the projection to the viewport.
                 On by default
-            and_scissor: Flag whether to also equalize the scissor box to the viewport.
+            scissor: Flag whether to also equalize the scissor box to the viewport.
                 On by default
-            and_position: Flag whether to also center the camera to the viewport.
+            position: Flag whether to also center the camera to the viewport.
                 Off by default
-            aspect_ratio: The ratio between width and height that the viewport should
+            aspect: The ratio between width and height that the viewport should
                 be constrained to. If unset then the viewport just matches the window
                 size. The aspect ratio describes how much larger the width should be
                 compared to the height. i.e. for an aspect ratio of ``4:3`` you should
@@ -383,7 +384,7 @@ class Camera2D:
             scissor: Flag whether to update the scissor value.
             position: Flag whether to also center the camera to the value.
                 Off by default
-            aspect_ratio: The ratio between width and height that the value should
+            aspect: The ratio between width and height that the value should
                 be constrained to. i.e. for an aspect ratio of ``4:3`` you should
                 input ``4.0/3.0`` or ``1.33333...``. Cannot be equal to zero.
                 If unset then the value will not be updated.
@@ -425,7 +426,7 @@ class Camera2D:
             scissor: Flag whether to update the scissor value.
             position: Flag whether to also center the camera to the value.
                 Off by default
-            aspect_ratio: The ratio between width and height that the value should
+            aspect: The ratio between width and height that the value should
                 be constrained to. i.e. for an aspect ratio of ``4:3`` you should
                 input ``4.0/3.0`` or ``1.33333...``. Cannot be equal to zero.
                 If unset then the value will not be updated.
