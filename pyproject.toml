@@ -55,7 +55,6 @@ dev = [
     "pytest-mock",
     "coverage",
     "coveralls",          # Do we really need this?
-    "black",
     "ruff",
     "mypy",
     "pyright==1.1.387",
@@ -83,11 +82,6 @@ build-backend = "setuptools.build_meta"
 
 
 [tool.ruff]
-# --- Description of what we ignore ---
-#
-# E731 do not assign a lambda expression, use a def
-# E741 Ambiguous variable name
-# F811: redefinition
 line-length = 100
 output-format = "full"
 exclude = [
@@ -103,13 +97,25 @@ exclude = [
     "bugs",
     "arcade/examples/platform_tutorial",
 ]
-lint.ignore = ["E731", "E741"]
+lint.ignore = [
+    "E731", # E731 do not assign a lambda expression, use a def
+    "E741", # E741 Ambiguous variable name
+    # F811: redefinition
+]
+
 lint.select = [
     "E",
     "F",
     # Whitespace linting must be re-enabled manually for ruff
     # see https://beta.ruff.rs/docs/configuration/#using-pyprojecttoml
     "W",
+]
+
+[tool.ruff.format]
+docstring-code-format = false
+exclude = [
+    "arcade/examples/*",
+    "benchmarks/*",
 ]
 
 # This ignores __init__.py files and examples for import sorting
@@ -169,19 +175,6 @@ omit = [
     "./doc/*",
     "./Win*/*",
 ]
-
-[tool.black]
-line-length = 100
-force-exclude = '''
-(
-  doc
-  | arcade/examples
-  | arcade/gui/examples
-  | tests
-  | util
-  | benchmarks
-)
-'''
 
 [[tool.mypy.overrides]]
 module = "pyglet.*"
