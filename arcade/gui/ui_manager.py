@@ -14,6 +14,7 @@ from collections import defaultdict
 from typing import Iterable, Optional, TypeVar, Union
 
 from pyglet.event import EVENT_HANDLED, EVENT_UNHANDLED, EventDispatcher
+from pyglet.input import Controller
 from typing_extensions import TypeGuard
 
 import arcade
@@ -30,6 +31,13 @@ from arcade.gui.events import (
     UITextInputEvent,
     UITextMotionEvent,
     UITextMotionSelectEvent,
+)
+from arcade.gui.experimental.controller import (
+    UIControllerButtonPressEvent,
+    UIControllerButtonReleaseEvent,
+    UIControllerDpadEvent,
+    UIControllerStickEvent,
+    UIControllerTriggerEvent,
 )
 from arcade.gui.surface import Surface
 from arcade.gui.widgets import UIWidget
@@ -293,6 +301,11 @@ class UIManager(EventDispatcher):
                 self.on_text,
                 self.on_text_motion,
                 self.on_text_motion_select,
+                self.on_stick_motion,
+                self.on_trigger_motion,
+                self.on_button_press,
+                self.on_button_release,
+                self.on_dpad_motion,
             )
 
     def disable(self) -> None:
@@ -316,6 +329,11 @@ class UIManager(EventDispatcher):
                 self.on_text,
                 self.on_text_motion,
                 self.on_text_motion_select,
+                self.on_stick_motion,
+                self.on_trigger_motion,
+                self.on_button_press,
+                self.on_button_release,
+                self.on_dpad_motion,
             )
 
     def on_update(self, time_delta):
@@ -451,6 +469,21 @@ class UIManager(EventDispatcher):
             surface.resize(size=(width, height), pixel_ratio=scale)
 
         self.trigger_render()
+
+    def on_stick_motion(self, controller: Controller, name, value):
+        return self.dispatch_ui_event(UIControllerStickEvent(controller, name, value))
+
+    def on_trigger_motion(self, controller: Controller, name, value):
+        return self.dispatch_ui_event(UIControllerTriggerEvent(controller, name, value))
+
+    def on_button_press(self, controller: Controller, button):
+        return self.dispatch_ui_event(UIControllerButtonPressEvent(controller, button))
+
+    def on_button_release(self, controller: Controller, button):
+        return self.dispatch_ui_event(UIControllerButtonReleaseEvent(controller, button))
+
+    def on_dpad_motion(self, controller: Controller, value):
+        return self.dispatch_ui_event(UIControllerDpadEvent(controller, value))
 
     @property
     def rect(self) -> Rect:

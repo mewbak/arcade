@@ -1,14 +1,15 @@
 import warnings
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from pyglet.input import Controller
 from pyglet.math import Vec2
 
 from arcade import ControllerManager
-from arcade.gui import (
-    UIEvent,
-    UIManager,
-)
+from arcade.gui.events import UIEvent
+
+if TYPE_CHECKING:
+    from arcade.gui.ui_manager import UIManager
 
 
 @dataclass
@@ -117,7 +118,7 @@ class UIControllerBridge(_ControllerListener):
     that other systems should be aware, when not to act on events (like when the UI is active).
     """
 
-    def __init__(self, ui: UIManager):
+    def __init__(self, ui: "UIManager"):
         self.ui = ui
         self.cm = ControllerManager()
 
