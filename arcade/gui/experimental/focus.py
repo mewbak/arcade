@@ -5,7 +5,7 @@ from pyglet.event import EVENT_HANDLED, EVENT_UNHANDLED
 from pyglet.math import Vec2
 
 import arcade
-from arcade import MOUSE_BUTTON_LEFT
+from arcade import LBWH, MOUSE_BUTTON_LEFT
 from arcade.gui.events import (
     UIEvent,
     UIKeyPressEvent,
@@ -56,6 +56,36 @@ class Focusable(UIWidget):
                 return w.parent
             w = self.parent
         return None
+
+    def _render_focus(self, surface: Surface):
+        # this will be properly integrated into widget
+        self.prepare_render(surface)
+        arcade.draw_rect_outline(
+            rect=LBWH(0, 0, self.content_width, self.content_height),
+            color=arcade.color.WHITE,
+            border_width=4,
+        )
+
+    def _do_render(self, surface: Surface, force=False) -> bool:
+        rendered = False
+
+        should_render = force or self._requires_render
+        if should_render and self.visible:
+            rendered = True
+            self.do_render_base(surface)
+            self.do_render(surface)
+
+            if self.focused:
+                self._render_focus(surface)
+
+            self._requires_render = False
+
+        # only render children if self is visible
+        if self.visible:
+            for child in self.children:
+                rendered |= child._do_render(surface, should_render)
+
+        return rendered
 
 
 class UIFocusMixin(UIWidget):
@@ -153,6 +183,18 @@ class UIFocusMixin(UIWidget):
                 return EVENT_HANDLED
 
         return EVENT_UNHANDLED
+
+    def _ensure_focused_property(self):
+        # TODO this is a hack, to set the focused property on the focused widget
+        # this should be properly handled in a property or so
+
+        focused = self._get_focused_widget()
+
+        for widget in self._focusable_widgets:
+            if widget == focused:
+                widget.focused = True
+            else:
+                widget.focused = False
 
     def _get_focused_widget(self) -> UIWidget | None:
         if len(self._focusable_widgets) == 0:
@@ -278,6 +320,8 @@ class UIFocusMixin(UIWidget):
             )
 
     def _do_render(self, surface: Surface, force=False) -> bool:
+        self._ensure_focused_property()  # TODO this is a hack, to set the focused property on the focused widget
+
         # TODO: add a post child render hook to UIWidget
         rendered = super()._do_render(surface, force)
 
@@ -290,40 +334,46 @@ class UIFocusMixin(UIWidget):
         surface.limit(None)
 
         widget = self._get_focused_widget()
-        if widget:
+        if not widget:
+            return
+
+        if isinstance(widget, Focusable):
+            # Focusable widgets care about focus themselves
+            pass
+        else:
             arcade.draw_rect_outline(
                 rect=widget.rect,
                 color=arcade.color.WHITE,
                 border_width=2,
             )
 
-            if self._debug:
-                # debugging
-                if isinstance(widget, Focusable):
-                    if widget.neighbor_up:
-                        self._draw_indicator(
-                            widget.rect.top_center,
-                            widget.neighbor_up.rect.bottom_center,
-                            color=arcade.color.RED,
-                        )
-                    if widget.neighbor_down:
-                        self._draw_indicator(
-                            widget.rect.bottom_center,
-                            widget.neighbor_down.rect.top_center,
-                            color=arcade.color.GREEN,
-                        )
-                    if widget.neighbor_left:
-                        self._draw_indicator(
-                            widget.rect.center_left,
-                            widget.neighbor_left.rect.center_right,
-                            color=arcade.color.BLUE,
-                        )
-                    if widget.neighbor_right:
-                        self._draw_indicator(
-                            widget.rect.center_right,
-                            widget.neighbor_right.rect.center_left,
-                            color=arcade.color.ORANGE,
-                        )
+        if self._debug:
+            # debugging
+            if isinstance(widget, Focusable):
+                if widget.neighbor_up:
+                    self._draw_indicator(
+                        widget.rect.top_center,
+                        widget.neighbor_up.rect.bottom_center,
+                        color=arcade.color.RED,
+                    )
+                if widget.neighbor_down:
+                    self._draw_indicator(
+                        widget.rect.bottom_center,
+                        widget.neighbor_down.rect.top_center,
+                        color=arcade.color.GREEN,
+                    )
+                if widget.neighbor_left:
+                    self._draw_indicator(
+                        widget.rect.center_left,
+                        widget.neighbor_left.rect.center_right,
+                        color=arcade.color.BLUE,
+                    )
+                if widget.neighbor_right:
+                    self._draw_indicator(
+                        widget.rect.center_right,
+                        widget.neighbor_right.rect.center_left,
+                        color=arcade.color.ORANGE,
+                    )
 
     def _draw_indicator(self, start: Vec2, end: Vec2, color=arcade.color.WHITE):
         arcade.draw_line(start.x, start.y, end.x, end.y, color, 2)
