@@ -200,7 +200,7 @@ class UIFocusMixin(UIWidget):
         if len(self._focusable_widgets) == 0:
             return None
 
-        if len(self._focusable_widgets) < self._focused < 0:
+        if len(self._focusable_widgets) <= self._focused < 0:
             warnings.warn("Focused widget is out of range")
             self._focused = 0
 
