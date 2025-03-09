@@ -10,8 +10,11 @@ Main features are:
 - Move items between slots
 - Controller support
 
+If Arcade and Python are properly installed, you can run this example with:
+python -m arcade.examples.gui.exp_inventory_demo
 """
 
+from functools import partial
 # TODO: Drag and Drop
 
 from typing import List
@@ -204,7 +207,7 @@ class InventoryUI(UIGridLayout):
             # fill left to right, bottom to top (6x5 grid)
             self.add(slot, column=i % 6, row=i // 6)
             self.grid[(i % 6, i // 6)] = slot
-            slot.on_click = self._on_slot_click
+            slot.on_click = self._on_slot_click  # type: ignore
 
         InventoryUI.register_event_type("on_slot_clicked")
 
@@ -235,13 +238,13 @@ class EquipmentUI(UIBoxLayout):
         equipment = Equipment()
 
         self.head_slot = self.add(EquipmentSlotUI(equipment, 0))
-        self.head_slot.on_click = lambda _: self.dispatch_event("on_slot_clicked", self.head_slot)
+        self.head_slot.on_click = partial(self.dispatch_event, "on_slot_clicked", self.head_slot)
 
         self.chest_slot = self.add(EquipmentSlotUI(equipment, 1))
-        self.chest_slot.on_click = lambda _: self.dispatch_event("on_slot_clicked", self.chest_slot)
+        self.chest_slot.on_click = partial(self.dispatch_event, "on_slot_clicked", self.chest_slot)
 
         self.legs_slot = self.add(EquipmentSlotUI(equipment, 2))
-        self.legs_slot.on_click = lambda _: self.dispatch_event("on_slot_clicked", self.legs_slot)
+        self.legs_slot.on_click = partial(self.dispatch_event, "on_slot_clicked", self.legs_slot)
 
         EquipmentUI.register_event_type("on_slot_clicked")
 
@@ -251,7 +254,7 @@ class ActiveSlotTrackerMixin(UIWidget):
     Mixin class to track the active slot.
     """
 
-    active_slot = Property(None)
+    active_slot = Property[InventorySlotUI | None](None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -307,14 +310,16 @@ class InventoryModal(ActiveSlotTrackerMixin, UIFocusGroup, UIAnchorLayout):
         self.add(content, anchor_y="bottom")
 
         inv_ui = content.add(InventoryUI(inventory))
-        inv_ui.on_slot_clicked = self.on_slot_clicked
+        inv_ui.on_slot_clicked = self.on_slot_clicked  # type: ignore
 
         eq_ui = content.add(EquipmentUI())
-        eq_ui.on_slot_clicked = self.on_slot_clicked
+        eq_ui.on_slot_clicked = self.on_slot_clicked  # type: ignore
 
         # prepare focusable widgets
         widget_grid = inv_ui.grid
-        setup_grid_focus_transition(widget_grid)  # setup default transitions in a grid
+        setup_grid_focus_transition(
+            widget_grid  # type: ignore
+        )  # setup default transitions in a grid
 
         # add transitions to equipment slots
         cols = max(x for x, y in widget_grid.keys())
@@ -343,7 +348,7 @@ class InventoryModal(ActiveSlotTrackerMixin, UIFocusGroup, UIAnchorLayout):
             anchor_x="right",
             anchor_y="top",
         )
-        close_button.on_click = lambda _: self.close()
+        close_button.on_click = lambda _: self.close()  # type: ignore
 
     def close(self):
         self.trigger_full_render()
@@ -378,6 +383,8 @@ class MyView(UIView):
             for i, item in enumerate(self.inventory):
                 print(i, item.symbol if item else "-")
             return True
+
+        return super().on_key_press(symbol, modifiers)
 
     def on_draw_before_ui(self):
         pass

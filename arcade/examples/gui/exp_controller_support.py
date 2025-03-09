@@ -1,3 +1,14 @@
+"""
+Example demonstrating controller support in an Arcade GUI.
+
+This example shows how to integrate controller input with the Arcade GUI framework.
+It includes a controller indicator widget that displays the last controller input,
+and a modal dialog that can be navigated using a controller.
+
+If Arcade and Python are properly installed, you can run this example with:
+python -m arcade.examples.gui.exp_controller_support
+"""
+
 from typing import Optional
 
 import arcade
@@ -34,7 +45,7 @@ class ControllerIndicator(UIAnchorLayout):
     """
 
     BLANK_TEX = Texture.create_empty("empty", (40, 40), arcade.color.TRANSPARENT_BLACK)
-    TEXTURE_CACHE = {}
+    TEXTURE_CACHE: dict[str, Texture] = {}
 
     def __init__(self):
         super().__init__()
@@ -54,39 +65,39 @@ class ControllerIndicator(UIAnchorLayout):
         if isinstance(event, UIControllerButtonEvent):
             match event.button:
                 case "a":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_button_a.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/button_a.png")
                 case "b":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_button_b.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/button_b.png")
                 case "x":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_button_x.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/button_x.png")
                 case "y":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_button_y.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/button_y.png")
                 case "rightshoulder":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_rb.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/rb.png")
                 case "leftshoulder":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_lb.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/lb.png")
                 case "start":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_button_start.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/button_start.png")
                 case "back":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_button_back.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/button_back.png")
 
         if isinstance(event, UIControllerTriggerEvent):
             match event.name:
                 case "lefttrigger":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_lt.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/lt.png")
                 case "righttrigger":
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_rt.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/rt.png")
 
         if isinstance(event, UIControllerDpadEvent):
             match event.vector:
                 case (1, 0):
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_dpad_right.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/dpad_right.png")
                 case (-1, 0):
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_dpad_left.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/dpad_left.png")
                 case (0, 1):
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_dpad_up.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/dpad_up.png")
                 case (0, -1):
-                    return cls.get_texture(":resources:input_prompt/xbox/xbox_dpad_down.png")
+                    return cls.get_texture(":resources:input_prompt/xbox/dpad_down.png")
 
         if isinstance(event, UIControllerStickEvent) and event.vector.length() > 0.2:
             stick = "l" if event.name == "leftstick" else "r"
@@ -94,13 +105,13 @@ class ControllerIndicator(UIAnchorLayout):
             # map atan2(y, x) to direction string (up, down, left, right)
             heading = event.vector.heading()
             if 0.785 > heading > -0.785:
-                return cls.get_texture(f":resources:input_prompt/xbox/xbox_stick_{stick}_right.png")
+                return cls.get_texture(f":resources:input_prompt/xbox/stick_{stick}_right.png")
             elif 0.785 < heading < 2.356:
-                return cls.get_texture(f":resources:input_prompt/xbox/xbox_stick_{stick}_up.png")
+                return cls.get_texture(f":resources:input_prompt/xbox/stick_{stick}_up.png")
             elif heading > 2.356 or heading < -2.356:
-                return cls.get_texture(f":resources:input_prompt/xbox/xbox_stick_{stick}_left.png")
+                return cls.get_texture(f":resources:input_prompt/xbox/stick_{stick}_left.png")
             elif -2.356 < heading < -0.785:
-                return cls.get_texture(f":resources:input_prompt/xbox/xbox_stick_{stick}_down.png")
+                return cls.get_texture(f":resources:input_prompt/xbox/stick_{stick}_down.png")
 
         return None
 

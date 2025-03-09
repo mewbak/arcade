@@ -18,6 +18,7 @@ from pyglet.input import Controller
 from typing_extensions import TypeGuard
 
 import arcade
+from arcade.experimental.controller_window import ControllerWindow
 from arcade.gui import UIEvent
 from arcade.gui.events import (
     UIKeyPressEvent,
@@ -41,7 +42,7 @@ from arcade.gui.experimental.controller import (
 )
 from arcade.gui.surface import Surface
 from arcade.gui.widgets import UIWidget
-from arcade.types import LBWH, AnchorPoint, Point2, Rect
+from arcade.types import AnchorPoint, LBWH, Point2, Rect
 
 W = TypeVar("W", bound=UIWidget)
 
@@ -288,6 +289,18 @@ class UIManager(EventDispatcher):
         """
         if not self._enabled:
             self._enabled = True
+
+            if isinstance(self.window, ControllerWindow):
+                controller_handlers = {
+                    self.on_stick_motion,
+                    self.on_trigger_motion,
+                    self.on_button_press,
+                    self.on_button_release,
+                    self.on_dpad_motion,
+                }
+            else:
+                controller_handlers = set()
+
             self.window.push_handlers(
                 self.on_resize,
                 self.on_update,
@@ -301,11 +314,7 @@ class UIManager(EventDispatcher):
                 self.on_text,
                 self.on_text_motion,
                 self.on_text_motion_select,
-                self.on_stick_motion,
-                self.on_trigger_motion,
-                self.on_button_press,
-                self.on_button_release,
-                self.on_dpad_motion,
+                *controller_handlers,
             )
 
     def disable(self) -> None:
@@ -316,6 +325,18 @@ class UIManager(EventDispatcher):
         """
         if self._enabled:
             self._enabled = False
+
+            if isinstance(self.window, ControllerWindow):
+                controller_handlers = {
+                    self.on_stick_motion,
+                    self.on_trigger_motion,
+                    self.on_button_press,
+                    self.on_button_release,
+                    self.on_dpad_motion,
+                }
+            else:
+                controller_handlers = set()
+
             self.window.remove_handlers(
                 self.on_resize,
                 self.on_update,
@@ -329,11 +350,7 @@ class UIManager(EventDispatcher):
                 self.on_text,
                 self.on_text_motion,
                 self.on_text_motion_select,
-                self.on_stick_motion,
-                self.on_trigger_motion,
-                self.on_button_press,
-                self.on_button_release,
-                self.on_dpad_motion,
+                *controller_handlers,
             )
 
     def on_update(self, time_delta):

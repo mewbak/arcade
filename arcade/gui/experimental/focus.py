@@ -50,11 +50,13 @@ class Focusable(UIWidget):
     @property
     def ui(self) -> UIManager | None:
         """The UIManager this widget is attached to."""
-        w = self
-        while w.parent:
-            if isinstance(w.parent, UIManager):
-                return w.parent
-            w = self.parent
+        w: UIWidget | None = self
+        while w and w.parent:
+            parent = w.parent
+            if isinstance(parent, UIManager):
+                return parent
+
+            w = parent
         return None
 
     def _render_focus(self, surface: Surface):
@@ -191,10 +193,11 @@ class UIFocusMixin(UIWidget):
         focused = self._get_focused_widget()
 
         for widget in self._focusable_widgets:
-            if widget == focused:
-                widget.focused = True
-            else:
-                widget.focused = False
+            if isinstance(widget, Focusable):
+                if widget == focused:
+                    widget.focused = True
+                else:
+                    widget.focused = False
 
     def _get_focused_widget(self) -> UIWidget | None:
         if len(self._focusable_widgets) == 0:
@@ -215,7 +218,7 @@ class UIFocusMixin(UIWidget):
             yield child
             yield from cls._walk_widgets(child)
 
-    def detect_focusable_widgets(self, root: UIWidget = None):
+    def detect_focusable_widgets(self, root: UIWidget | None = None):
         """Automatically detect focusable widgets."""
         if root is None:
             root = self
@@ -286,8 +289,8 @@ class UIFocusMixin(UIWidget):
             widget.dispatch_ui_event(
                 UIMousePressEvent(
                     source=self,
-                    x=widget.rect.center_x,
-                    y=widget.rect.center_y,
+                    x=int(widget.rect.center_x),
+                    y=int(widget.rect.center_y),
                     button=MOUSE_BUTTON_LEFT,
                     modifiers=0,
                 )
@@ -312,15 +315,16 @@ class UIFocusMixin(UIWidget):
             widget.dispatch_ui_event(
                 UIMouseReleaseEvent(
                     source=self,
-                    x=x,
-                    y=y,
+                    x=int(x),
+                    y=int(y),
                     button=MOUSE_BUTTON_LEFT,
                     modifiers=0,
                 )
             )
 
     def _do_render(self, surface: Surface, force=False) -> bool:
-        self._ensure_focused_property()  # TODO this is a hack, to set the focused property on the focused widget
+        # TODO this is a hack, to set the focused property on the focused widget
+        self._ensure_focused_property()
 
         # TODO: add a post child render hook to UIWidget
         rendered = super()._do_render(surface, force)
