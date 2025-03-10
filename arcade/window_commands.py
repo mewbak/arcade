@@ -10,11 +10,11 @@ import gc
 import os
 import sys
 import time
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 import pyglet
 
-from arcade.types import Color, RGBA255
+from arcade.types import RGBA255, Color
 
 if TYPE_CHECKING:
     from arcade import Window
@@ -148,7 +148,7 @@ def run(view: View | None = None) -> None:
         # On macOS we have to patch the eventloop until a new pyglet version is released
         eventloop = pyglet.app.event_loop
 
-        def patched_run(interval=1 / 60):
+        def patched_run(interval=1 / 60):  # type: ignore
             if interval is None:
                 pass
             elif not interval:
@@ -167,14 +167,14 @@ def run(view: View | None = None) -> None:
                 window.switch_to()
                 window.dispatch_pending_events()
 
-            eventloop.platform_event_loop = pyglet.app.platform_event_loop
+            eventloop.platform_event_loop = pyglet.app.platform_event_loop  # type: ignore
 
             eventloop.dispatch_event("on_enter")
             eventloop.is_running = True
 
-            eventloop.platform_event_loop.nsapp_start(interval or 0)
+            eventloop.platform_event_loop.nsapp_start(interval or 0)  # type: ignore
 
-        eventloop.run = patched_run
+        eventloop.run = patched_run  # type: ignore
 
         pyglet.app.run(None)
 
