@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import gc
 import os
+import sys
 import time
-from typing import TYPE_CHECKING, Callable
+from typing import Callable, TYPE_CHECKING
 
 import pyglet
 
-from arcade.types import RGBA255, Color
+from arcade.types import Color, RGBA255
 
 if TYPE_CHECKING:
     from arcade import Window
@@ -143,6 +144,40 @@ def run(view: View | None = None) -> None:
 
             now = time.perf_counter()
             delta_time, last_time = now - last_time, now
+    elif sys.platform == "darwin":
+        # On macOS we have to patch the eventloop until a new pyglet version is released
+        eventloop = pyglet.app.event_loop
+
+        def patched_run(interval=1 / 60):
+            if interval is None:
+                pass
+            elif not interval:
+                eventloop.clock.schedule(eventloop._redraw_windows)
+            else:
+                eventloop.clock.schedule_interval(eventloop._redraw_windows, interval)
+
+            eventloop.has_exit = False
+
+            from pyglet.window import Window
+
+            Window._enable_event_queue = False
+
+            # Dispatch pending events
+            for window in pyglet.app.windows:
+                window.switch_to()
+                window.dispatch_pending_events()
+
+            eventloop.platform_event_loop = pyglet.app.platform_event_loop
+
+            eventloop.dispatch_event("on_enter")
+            eventloop.is_running = True
+
+            eventloop.platform_event_loop.nsapp_start(interval or 0)
+
+        eventloop.run = patched_run
+
+        pyglet.app.run(None)
+
     else:
         # Start the standard event loop (blocking)
         # Note that we pass None as the interval here because we register
