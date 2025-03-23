@@ -108,7 +108,7 @@ class PerspectiveProjector(Projector):
         """Generates a projection matrix.
 
         This is an alias of
-        :py:class:`arcade.camera.get_perspective_matrix`.
+        :py:meth:`generate_perspective_matrix`.
         """
         return generate_perspective_matrix(self._projection, self._view.zoom)
 
@@ -116,7 +116,7 @@ class PerspectiveProjector(Projector):
         """Generates a view matrix.
 
         This is an alias of=
-        :py:class:`arcade.camera.get_view_matrix`.
+        :py:meth:`generate_view_matrix`.
         """
         return generate_view_matrix(self._view)
 
@@ -171,7 +171,7 @@ class PerspectiveProjector(Projector):
         """Convert world coordinates to pixel screen coordinates.
 
         If a 2D :py:class:`~pyglet.math.Vec2` is provided instead of a 3D
-        :py:class:`Vec3`, then one will be calculated to the best of the
+        :py:class:`~pyglet.math.Vec3`, then one will be calculated to the best of the
         method's ability.
 
         Args:
