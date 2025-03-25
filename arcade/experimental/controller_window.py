@@ -69,6 +69,10 @@ class ControllerWindow(arcade.Window):
         super().__init__(*args, **kwargs)
         self.cb = _WindowControllerBridge(self)
 
+    def get_controllers(self) -> list[Controller]:
+        """Return a list of connected controllers."""
+        return self.cb.cm.get_controllers()
+
     # Controller event mapping
     def on_stick_motion(self, controller: Controller, name, value):
         pass
