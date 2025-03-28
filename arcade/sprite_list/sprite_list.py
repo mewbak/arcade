@@ -600,7 +600,8 @@ class SpriteList(Generic[SpriteType]):
             self._init_deferred()
 
     def pop(self, index: int = -1) -> SpriteType:
-        """Attempt to pop a sprite from the list.
+        """
+        Attempt to pop a sprite from the list.
 
         This works like :external:ref:`popping from <tut-morelists>` a
         standard Python :py:class:`list`:
@@ -609,6 +610,9 @@ class SpriteList(Generic[SpriteType]):
         #. If no ``index`` is passed, try to pop the last
            :py:class:`Sprite` in the list
 
+        This is the most efficient way to remove a sprite from the list.
+        The complexity of this method is ``O(1)``.
+
         Args:
             index:
                 Index of sprite to remove (defaults to ``-1`` for the last item)
@@ -616,8 +620,24 @@ class SpriteList(Generic[SpriteType]):
         if len(self.sprite_list) == 0:
             raise IndexError("pop from empty list")
 
-        sprite = self.sprite_list[index]
-        self.remove(sprite)
+        sprite = self.sprite_list.pop(index)
+        try:
+            slot = self.sprite_slot[sprite]
+        except KeyError:
+            raise ValueError("Sprite is not in the SpriteList")
+
+        sprite.sprite_lists.remove(self)
+        del self.sprite_slot[sprite]
+        self._sprite_buffer_free_slots.append(slot)
+
+        _ = self._sprite_index_data.pop(index)
+        self._sprite_index_data.append(0)
+        self._sprite_index_slots -= 1
+        self._sprite_index_changed = True
+
+        if self.spatial_hash is not None:
+            self.spatial_hash.remove(sprite)
+
         return sprite
 
     def append(self, sprite: SpriteType) -> None:
@@ -681,6 +701,10 @@ class SpriteList(Generic[SpriteType]):
         """
         Remove a specific sprite from the list.
 
+        Note that this method is ``O(N)`` in complexity and will have
+        and increased cost the more sprites you have in the list.
+        A faster option is to use :py:meth:`pop` or :py:meth:`swap`.
+
         Args:
             sprite: Item to remove from the list
         """
@@ -689,14 +713,14 @@ class SpriteList(Generic[SpriteType]):
         except KeyError:
             raise ValueError("Sprite is not in the SpriteList")
 
-        self.sprite_list.remove(sprite)
+        index = self.sprite_list.index(sprite)
+        self.sprite_list.pop(index)
         sprite.sprite_lists.remove(self)
         del self.sprite_slot[sprite]
 
         self._sprite_buffer_free_slots.append(slot)
 
-        # Brutal resize for now. Optimize later
-        self._sprite_index_data.remove(slot)
+        self._sprite_index_data.pop(index)
         self._sprite_index_data.append(0)
         self._sprite_index_slots -= 1
         self._sprite_index_changed = True
