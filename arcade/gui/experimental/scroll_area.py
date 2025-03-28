@@ -10,6 +10,7 @@ from arcade.gui import (
     Property,
     Surface,
     UIEvent,
+    UIKeyPressEvent,
     UILayout,
     UIMouseDragEvent,
     UIMouseEvent,
@@ -18,7 +19,7 @@ from arcade.gui import (
     UIMouseReleaseEvent,
     UIMouseScrollEvent,
     UIWidget,
-    bind, UIKeyPressEvent,
+    bind,
 )
 from arcade.types import LBWH
 
@@ -103,12 +104,16 @@ class UIScrollBar(UIWidget):
             print(self._scroll_bar_size())
 
         return EVENT_UNHANDLED
-    
+
     def _scroll_bar_size(self):
         # based on: https://stackoverflow.com/a/16367035
 
-        content_size = self.scroll_area.surface.height if self.vertical else self.scroll_area.surface.width
-        view_size = self.scroll_area.content_height if self.vertical else self.scroll_area.content_width
+        content_size = (
+            self.scroll_area.surface.height if self.vertical else self.scroll_area.surface.width
+        )
+        view_size = (
+            self.scroll_area.content_height if self.vertical else self.scroll_area.content_width
+        )
         ratio = view_size / content_size
 
         scoll_range = self.content_height if self.vertical else self.content_width
@@ -135,7 +140,7 @@ class UIScrollBar(UIWidget):
 
         if not self._scrollable():
             # content is smaller than the scroll area, full size thumb
-            return LBWH(0,0, self.content_width, self.content_height)
+            return LBWH(0, 0, self.content_width, self.content_height)
 
         scroll_progress = -scroll_value / scroll_range
 
@@ -143,7 +148,9 @@ class UIScrollBar(UIWidget):
         available_track_size = content_size - self._scroll_bar_size()
 
         if self.vertical:
-            scroll_bar_y = self._scroll_bar_size() / 2 + available_track_size * (1 - scroll_progress)
+            scroll_bar_y = self._scroll_bar_size() / 2 + available_track_size * (
+                1 - scroll_progress
+            )
             scroll_bar_x = self.content_width / 2
             return XYWH(scroll_bar_x, scroll_bar_y, self.content_width, self._scroll_bar_size())
 
