@@ -5,7 +5,6 @@ If the implementation is successful, the feature will be merged into the existin
 
 from typing import Optional
 
-
 from arcade.gui import UIEvent, UIInputText
 
 
