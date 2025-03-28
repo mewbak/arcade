@@ -1,7 +1,8 @@
 """
 Example demonstrating a grid layout with focusable buttons in an Arcade GUI.
 
-This example shows how to create a grid layout with buttons that can be navigated using a controller.
+This example shows how to create a grid layout with buttons
+that can be navigated using a controller.
 It includes a focus transition setup to allow smooth navigation between buttons in the grid.
 
 If Arcade and Python are properly installed, you can run this example with:
@@ -31,7 +32,7 @@ class FocusableButton(Focusable, UIFlatButton):
 def setup_grid_focus_transition(grid: Dict[Tuple[int, int], UIWidget]):
     """Setup focus transition in grid.
 
-    Connect focus transition between `Focusable` in grid.
+    Connect focus transition between `Focusable` in grid.  
 
     Args:
         grid: Dict[Tuple[int, int], Focusable]: grid of Focusable widgets.

@@ -42,7 +42,7 @@ from arcade.gui.experimental.controller import (
 )
 from arcade.gui.surface import Surface
 from arcade.gui.widgets import UIWidget
-from arcade.types import AnchorPoint, LBWH, Point2, Rect
+from arcade.types import LBWH, AnchorPoint, Point2, Rect
 
 W = TypeVar("W", bound=UIWidget)
 

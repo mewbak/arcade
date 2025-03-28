@@ -18,7 +18,6 @@ class _WindowControllerBridge:
     that other systems should be aware, when not to act on events (like when the UI is active).
     """
 
-
     def __init__(self, window: arcade.Window):
         self.window = window
 
