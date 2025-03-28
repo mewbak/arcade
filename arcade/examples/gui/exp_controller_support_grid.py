@@ -32,7 +32,7 @@ class FocusableButton(Focusable, UIFlatButton):
 def setup_grid_focus_transition(grid: Dict[Tuple[int, int], UIWidget]):
     """Setup focus transition in grid.
 
-    Connect focus transition between `Focusable` in grid.  
+    Connect focus transition between `Focusable` in grid.
 
     Args:
         grid: Dict[Tuple[int, int], Focusable]: grid of Focusable widgets.
