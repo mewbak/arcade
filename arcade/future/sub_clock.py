@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Union
 
 from arcade.clock import GLOBAL_CLOCK, Clock
 
 
-def boot_strap_clock(clock: Optional[Clock] = None) -> Clock:
+def boot_strap_clock(clock: Clock | None = None) -> Clock:
     """
     Because the sub_clock is not a fully featured part of Arcade we have to
     manipulate the clocks before the can be used with sub_clocks.

@@ -7,7 +7,6 @@ individual sprites.
 
 from __future__ import annotations
 
-# import logging
 import random
 from array import array
 from collections import deque
@@ -29,19 +28,12 @@ from arcade.gl import Program, Texture2D
 from arcade.gl.buffer import Buffer
 from arcade.gl.types import BlendFunction, OpenGlFilter, PyGLenum
 from arcade.gl.vertex_array import Geometry
-from arcade.types import RGBA255, Color, RGBANormalized, RGBOrA255, RGBOrANormalized
+from arcade.types import RGBA255, Color, Point2, RGBANormalized, RGBOrA255, RGBOrANormalized
 from arcade.utils import copy_dunders_unimplemented
 
 if TYPE_CHECKING:
     from arcade import DefaultTextureAtlas, Texture
     from arcade.texture_atlas import TextureAtlasBase
-
-# LOG = logging.getLogger(__name__)
-
-# The slot index that makes a sprite invisible.
-# 2^31-1 is usually reserved for primitive restart
-# NOTE: Possibly we want to use slot 0 for this?
-_SPRITE_SLOT_INVISIBLE = 2000000000
 
 # The default capacity from spritelists
 _DEFAULT_CAPACITY = 100
@@ -181,13 +173,6 @@ class SpriteList(Generic[SpriteType]):
 
         self.properties: dict[str, Any] | None = None
 
-        # LOG.debug(
-        #     "[%s] Creating SpriteList use_spatial_hash=%s capacity=%s",
-        #     id(self),
-        #     use_spatial_hash,
-        #     self._buf_capacity,
-        # )
-
         # Check if the window/context is available
         try:
             get_window()
@@ -275,8 +260,6 @@ class SpriteList(Generic[SpriteType]):
 
     def __setitem__(self, index: int, sprite: SpriteType) -> None:
         """Replace a sprite at a specific index"""
-        # print(f"{id(self)} : {id(sprite)} __setitem__({index})")
-
         try:
             existing_index = self.sprite_list.index(sprite)  # raise ValueError
             if existing_index == index:
@@ -385,7 +368,6 @@ class SpriteList(Generic[SpriteType]):
 
     @alpha.setter
     def alpha(self, value: int) -> None:
-        # value = clamp(value, 0, 255)
         self._color = self._color[0], self._color[1], self._color[2], value / 255
 
     @property
@@ -402,7 +384,6 @@ class SpriteList(Generic[SpriteType]):
 
     @alpha_normalized.setter
     def alpha_normalized(self, value: float) -> None:
-        # value = clamp(value, 0.0, 1.0)
         self._color = self._color[0], self._color[1], self._color[2], value
 
     @property
@@ -619,7 +600,8 @@ class SpriteList(Generic[SpriteType]):
             self._init_deferred()
 
     def pop(self, index: int = -1) -> SpriteType:
-        """Attempt to pop a sprite from the list.
+        """
+        Attempt to pop a sprite from the list.
 
         This works like :external:ref:`popping from <tut-morelists>` a
         standard Python :py:class:`list`:
@@ -628,6 +610,9 @@ class SpriteList(Generic[SpriteType]):
         #. If no ``index`` is passed, try to pop the last
            :py:class:`Sprite` in the list
 
+        This is the most efficient way to remove a sprite from the list.
+        The complexity of this method is ``O(1)``.
+
         Args:
             index:
                 Index of sprite to remove (defaults to ``-1`` for the last item)
@@ -635,8 +620,24 @@ class SpriteList(Generic[SpriteType]):
         if len(self.sprite_list) == 0:
             raise IndexError("pop from empty list")
 
-        sprite = self.sprite_list[index]
-        self.remove(sprite)
+        sprite = self.sprite_list.pop(index)
+        try:
+            slot = self.sprite_slot[sprite]
+        except KeyError:
+            raise ValueError("Sprite is not in the SpriteList")
+
+        sprite.sprite_lists.remove(self)
+        del self.sprite_slot[sprite]
+        self._sprite_buffer_free_slots.append(slot)
+
+        _ = self._sprite_index_data.pop(index)
+        self._sprite_index_data.append(0)
+        self._sprite_index_slots -= 1
+        self._sprite_index_changed = True
+
+        if self.spatial_hash is not None:
+            self.spatial_hash.remove(sprite)
+
         return sprite
 
     def append(self, sprite: SpriteType) -> None:
@@ -667,10 +668,6 @@ class SpriteList(Generic[SpriteType]):
         if self.spatial_hash is not None:
             self.spatial_hash.add(sprite)
 
-        # Load additional textures attached to the sprite
-        # if hasattr(sprite, "textures") and self._initialized:
-        #     for texture in sprite.textures or []:
-        #         self._atlas.add(texture)
         if self._initialized:
             if sprite.texture is None:
                 raise ValueError("Sprite must have a texture when added to a SpriteList")
@@ -704,29 +701,26 @@ class SpriteList(Generic[SpriteType]):
         """
         Remove a specific sprite from the list.
 
+        Note that this method is ``O(N)`` in complexity and will have
+        and increased cost the more sprites you have in the list.
+        A faster option is to use :py:meth:`pop` or :py:meth:`swap`.
+
         Args:
             sprite: Item to remove from the list
         """
-        # print(f"{id(self)} : {id(sprite)} remove")
         try:
             slot = self.sprite_slot[sprite]
         except KeyError:
             raise ValueError("Sprite is not in the SpriteList")
 
-        self.sprite_list.remove(sprite)
+        index = self.sprite_list.index(sprite)
+        self.sprite_list.pop(index)
         sprite.sprite_lists.remove(self)
         del self.sprite_slot[sprite]
 
         self._sprite_buffer_free_slots.append(slot)
 
-        # NOTE: Optimize this by deferring removal?
-        #       Defer removal
-        # Set the sprite as invisible in the index buffer
-        # idx_slot = self._sprite_index_data.index(slot)
-        # self._sprite_index_data[idx_slot] = _SPRITE_SLOT_INVISIBLE
-
-        # Brutal resize for now. Optimize later
-        self._sprite_index_data.remove(slot)
+        self._sprite_index_data.pop(index)
         self._sprite_index_data.append(0)
         self._sprite_index_slots -= 1
         self._sprite_index_changed = True
@@ -864,13 +858,10 @@ class SpriteList(Generic[SpriteType]):
             spatial_hash_cell_size: The size of the cell in the spatial hash.
         """
         if self.spatial_hash is None or self.spatial_hash.cell_size != spatial_hash_cell_size:
-            # LOG.debug("Enabled spatial hashing with cell size %s", spatial_hash_cell_size)
             from .spatial_hash import SpatialHash
 
             self.spatial_hash = SpatialHash(cell_size=spatial_hash_cell_size)
             self._recalculate_spatial_hashes()
-        # else:
-        #     LOG.debug("Spatial hashing is already enabled with size %s", spatial_hash_cell_size)
 
     def _recalculate_spatial_hashes(self) -> None:
         if self.spatial_hash is None:
@@ -903,7 +894,6 @@ class SpriteList(Generic[SpriteType]):
             *args: Additional positional arguments
             **kwargs: Additional keyword arguments
         """
-        # NOTE: Can we limit this to animated sprites?
         for sprite in self.sprite_list:
             sprite.update_animation(delta_time, *args, **kwargs)
 
@@ -966,20 +956,6 @@ class SpriteList(Generic[SpriteType]):
         self._write_sprite_buffers_to_gpu()
 
     def _write_sprite_buffers_to_gpu(self) -> None:
-        # LOG.debug(
-        #     (
-        #         "[%s] SpriteList._write_sprite_buffers_to_gpu: "
-        #         "pos=%s, size=%s, angle=%s, color=%s tex=%s idx=%s"
-        #     ),
-        #     id(self),
-        #     self._sprite_pos_changed,
-        #     self._sprite_size_changed,
-        #     self._sprite_angle_changed,
-        #     self._sprite_color_changed,
-        #     self._sprite_texture_changed,
-        #     self._sprite_index_changed,
-        # )
-
         if self._sprite_pos_changed and self._sprite_pos_buf:
             self._sprite_pos_buf.orphan()
             self._sprite_pos_buf.write(self._sprite_pos_data)
@@ -1138,10 +1114,22 @@ class SpriteList(Generic[SpriteType]):
             color: The color of the hit boxes
             line_thickness: The thickness of the lines
         """
-        converted_color = Color.from_iterable(color)
+        import arcade
 
+        converted_color = Color.from_iterable(color)
+        points: list[Point2] = []
+
+        # TODO: Make this faster in the future
+        # NOTE: This will be easier when/if we change to triangles
         for sprite in self.sprite_list:
-            sprite.draw_hit_box(converted_color, line_thickness)
+            adjusted_points = sprite.hit_box.get_adjusted_points()
+            for i in range(len(adjusted_points) - 1):
+                points.append(adjusted_points[i])
+                points.append(adjusted_points[i + 1])
+            points.append(adjusted_points[-1])
+            points.append(adjusted_points[0])
+
+        arcade.draw_lines(points, color=converted_color, line_width=line_thickness)
 
     def _normalize_index_buffer(self) -> None:
         """
@@ -1172,13 +1160,6 @@ class SpriteList(Generic[SpriteType]):
         extend_by = self._buf_capacity
         self._buf_capacity = self._buf_capacity * 2
 
-        # LOG.debug(
-        #     "(%s) Increasing buffer capacity from %s to %s",
-        #     self._sprite_buffer_slots,
-        #     extend_by,
-        #     self._buf_capacity,
-        # )
-
         # Extend the buffers so we don't lose the old data
         self._sprite_pos_data.extend([0] * extend_by * 3)
         self._sprite_size_data.extend([0] * extend_by * 2)
@@ -1207,20 +1188,6 @@ class SpriteList(Generic[SpriteType]):
 
         extend_by = self._idx_capacity
         self._idx_capacity = self._idx_capacity * 2
-
-        # LOG.debug(
-        #     "Buffers: index_slots=%s sprite_slots=%s over-allocation-ratio=%s",
-        #     self._sprite_index_slots,
-        #     self._sprite_buffer_slots,
-        #     self._sprite_index_slots / self._sprite_buffer_slots,
-        # )
-
-        # LOG.debug(
-        #     "(%s) Increasing index capacity from %s to %s",
-        #     self._sprite_index_slots,
-        #     extend_by,
-        #     self._idx_capacity,
-        # )
 
         self._sprite_index_data.extend([0] * extend_by)
         if self._initialized and self._sprite_index_buf:

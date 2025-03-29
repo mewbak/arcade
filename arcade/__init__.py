@@ -4,8 +4,6 @@ The Arcade Library
 A Python simple, easy to use module for creating 2D games.
 """
 
-from __future__ import annotations
-
 # flake8: noqa: E402
 # Error out if we import Arcade with an incompatible version of Python.
 import sys
@@ -71,11 +69,11 @@ if headless:
     pyglet.options.headless = headless
 
 
-from arcade import utils
-
+# from arcade import utils
 # Disable shadow window on macs and in headless mode.
-if sys.platform == "darwin" or os.environ.get("ARCADE_HEADLESS") or utils.is_raspberry_pi():
-    pyglet.options.shadow_window = False
+# if sys.platform == "darwin" or os.environ.get("ARCADE_HEADLESS") or utils.is_raspberry_pi():
+# NOTE: We always disable shadow window now to have consistent behavior across platforms.
+pyglet.options.shadow_window = False
 
 # Imports from modules that don't do anything circular
 
