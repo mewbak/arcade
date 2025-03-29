@@ -291,7 +291,7 @@ class GalleryView(UIView):
         )
 
         @pw_input.event("on_change")
-        def on_text_change(event: UIOnChangeEvent):
+        def _(event: UIOnChangeEvent):
             event.source.invalid = event.new_value != "arcade"
 
         welcome_label = box.add(
@@ -299,7 +299,7 @@ class GalleryView(UIView):
         )
 
         @name_input.event("on_change")
-        def on_text_change(event: UIOnChangeEvent):
+        def _(event: UIOnChangeEvent):
             welcome_label.text = f"Nice to meet you `{event.new_value}`"
 
         box.add(UISpace(size_hint=(1, 0.3)))  # Fill some of the left space
