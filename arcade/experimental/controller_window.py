@@ -36,6 +36,8 @@ class _WindowControllerBridge:
         except Exception as e:
             warnings.warn(f"Failed to open controller {controller}: {e}")
 
+        self.window.dispatch_event("on_connect", controller)
+
     def on_disconnect(self, controller: Controller):
         controller.remove_handlers(self)
 
@@ -44,7 +46,9 @@ class _WindowControllerBridge:
         except Exception as e:
             warnings.warn(f"Failed to close controller {controller}: {e}")
 
-    # Controller event mapping
+        self.window.dispatch_event("on_disconnect", controller)
+
+    # Controller input event mapping
     def on_stick_motion(self, controller: Controller, name, value):
         return self.window.dispatch_event("on_stick_motion", controller, name, value)
 
@@ -62,7 +66,8 @@ class _WindowControllerBridge:
 
 
 class ControllerWindow(arcade.Window):
-    """A window that listens to controller events and dispatches them via on_... hooks."""
+    """A window that automatically opens and listens to controller events
+    and dispatches them via on_... hooks."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -73,24 +78,77 @@ class ControllerWindow(arcade.Window):
         return self.cb.cm.get_controllers()
 
     # Controller event mapping
+    def on_connect(self, controller: Controller):
+        """Called when a controller is connected.
+        The controller is already opened and ready to be used.
+        """
+        pass
+
+    def on_disconnect(self, controller: Controller):
+        """Called when a controller is disconnected."""
+        pass
+
     def on_stick_motion(self, controller: Controller, name, value):
+        """Called when a stick is moved."""
         pass
 
     def on_trigger_motion(self, controller: Controller, name, value):
+        """Called when a trigger is moved."""
         pass
 
     def on_button_press(self, controller: Controller, button):
+        """Called when a button is pressed."""
         pass
 
     def on_button_release(self, controller: Controller, button):
+        """Called when a button is released."""
         pass
 
     def on_dpad_motion(self, controller: Controller, value):
+        """Called when the dpad is moved."""
         pass
 
 
+ControllerWindow.register_event_type("on_connect")
+ControllerWindow.register_event_type("on_disconnect")
 ControllerWindow.register_event_type("on_stick_motion")
 ControllerWindow.register_event_type("on_trigger_motion")
 ControllerWindow.register_event_type("on_button_press")
 ControllerWindow.register_event_type("on_button_release")
 ControllerWindow.register_event_type("on_dpad_motion")
+
+
+class ControllerView(arcade.View):
+    """A view which predefines the controller event mapping methods.
+
+    Can be used with a ControllerWindow to handle controller events."""
+
+    def on_connect(self, controller: Controller):
+        """Called when a controller is connected.
+        The controller is already opened and ready to be used.
+        """
+        pass
+
+    def on_disconnect(self, controller: Controller):
+        """Called when a controller is disconnected."""
+        pass
+
+    def on_stick_motion(self, controller: Controller, name, value):
+        """Called when a stick is moved."""
+        pass
+
+    def on_trigger_motion(self, controller: Controller, name, value):
+        """Called when a trigger is moved."""
+        pass
+
+    def on_button_press(self, controller: Controller, button):
+        """Called when a button is pressed."""
+        pass
+
+    def on_button_release(self, controller: Controller, button):
+        """Called when a button is released."""
+        pass
+
+    def on_dpad_motion(self, controller: Controller, value):
+        """Called when the dpad is moved."""
+        pass

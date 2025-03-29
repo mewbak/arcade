@@ -1,7 +1,5 @@
 from typing import TypeVar
 
-from pyglet.input import Controller
-
 from arcade import View
 from arcade.gui.ui_manager import UIManager
 from arcade.gui.widgets import UIWidget
@@ -60,20 +58,4 @@ class UIView(View):
 
     def on_draw_after_ui(self):
         """Use this method to draw custom elements after the UI elements are drawn."""
-        pass
-
-    # Controller event mapping
-    def on_stick_motion(self, controller: Controller, name, value):
-        pass
-
-    def on_trigger_motion(self, controller: Controller, name, value):
-        pass
-
-    def on_button_press(self, controller: Controller, button):
-        pass
-
-    def on_button_release(self, controller: Controller, button):
-        pass
-
-    def on_dpad_motion(self, controller: Controller, value):
         pass
