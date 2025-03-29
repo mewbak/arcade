@@ -34,6 +34,7 @@ from arcade.gui import (
     UITextureToggle,
     UIView,
 )
+from arcade.gui.experimental import UIPasswordInput
 
 # Load system fonts
 arcade.resources.load_kenney_fonts()
@@ -256,14 +257,14 @@ class GalleryView(UIView):
 
         self._body.clear()
 
-        box = UIBoxLayout(vertical=True, size_hint=(1, 1), align="left")
+        box = UIBoxLayout(vertical=True, size_hint=(1, 1), align="left", space_between=10)
         self._body.add(box)
         box.add(UILabel("Text Widgets", font_name=DEFAULT_FONT, font_size=32))
         box.add(UISpace(size_hint=(1, 0.1)))
 
         row_1 = UIBoxLayout(vertical=False, size_hint=(1, 0.1))
         box.add(row_1)
-        row_1.add(UILabel("Name: ", font_name=DEFAULT_FONT, font_size=24))
+        row_1.add(UILabel("Username: ", font_name=DEFAULT_FONT, font_size=24))
         name_input = row_1.add(
             UIInputText(
                 width=400,
@@ -274,6 +275,25 @@ class GalleryView(UIView):
                 border_width=2,
             )
         )
+
+        row_2 = UIBoxLayout(vertical=False, size_hint=(1, 0.1))
+        box.add(row_2)
+        row_2.add(UILabel("Password: ", font_name=DEFAULT_FONT, font_size=24))
+        pw_input = row_2.add(
+            UIPasswordInput(
+                width=400,
+                height=40,
+                font_name=DEFAULT_FONT,
+                font_size=24,
+                border_color=arcade.uicolor.GRAY_CONCRETE,
+                border_width=2,
+            )
+        )
+
+        @pw_input.event("on_change")
+        def on_text_change(event: UIOnChangeEvent):
+            event.source.invalid = event.new_value != "arcade"
+
         welcome_label = box.add(
             UILabel("Nice to meet you ''", font_name=DEFAULT_FONT, font_size=24)
         )
@@ -618,4 +638,10 @@ def main():
 
 
 if __name__ == "__main__":
+    import pyglet
+
+    pyglet.options.text_antialiasing = False
+    pyglet.font.base.Font.texture_min_filter = pyglet.gl.GL_NEAREST
+    pyglet.font.base.Font.texture_mag_filter = pyglet.gl.GL_NEAREST
+
     main()
