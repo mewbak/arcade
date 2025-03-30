@@ -7,6 +7,20 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 ## Version 3.1 (unreleased)
 
 - Drop Python 3.9 support
+- Disable shadow window on all platforms to provide a consistent experience
+- Performance
+  - Improved performance of `arcade.SpriteList.remove()` and `arcade.SpriteList.pop()`
+  - Improved performance of `arcade.hitbox.Hitbox.get_adjusted_points()` ~35%
+  - Improved performance of `arcade.SpriteList.draw_hit_boxes()` ~20x
+- GUI
+ - `arcade.gui.widgets.text.UIInputText`
+   - now supports styles for `normal`, `disabled`, `hovered`, `pressed` and `invalid` states
+   - provides a `invalid` property to indicate if the input is invalid
+ - Added experimental `arcade.gui.experimental.UIRestrictedInput` 
+   a subclass of `UIInputText` that restricts the input to a specific set of characters
+ - `arcade.gui.NinePatchTexture` is now lazy and can be created before a window exists allowing creation during imports.
+ - Improve `arcade.gui.experimental.scroll_area.ScrollBar` behavior to match HTML scrollbars
+- Support drawing hitboxes using RBG or RGBA 
 
 ## Version 3.0.2
 
