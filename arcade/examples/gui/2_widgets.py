@@ -638,10 +638,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import pyglet
-
-    pyglet.options.text_antialiasing = False
-    pyglet.font.base.Font.texture_min_filter = pyglet.gl.GL_NEAREST
-    pyglet.font.base.Font.texture_mag_filter = pyglet.gl.GL_NEAREST
-
     main()
