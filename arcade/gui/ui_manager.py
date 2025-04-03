@@ -320,7 +320,7 @@ class UIManager(EventDispatcher):
         """Dispatches an update event to all widgets in the UIManager."""
         return self.dispatch_ui_event(UIOnUpdateEvent(self, time_delta))
 
-    def draw(self, pixelated=False) -> None:
+    def draw(self, **kwargs) -> None:
         """Will draw all widgets to the window.
 
         UIManager caches all rendered widgets into a framebuffer (something like a
