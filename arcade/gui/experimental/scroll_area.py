@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, TypeVar
 
 from pyglet.event import EVENT_UNHANDLED
 
@@ -22,6 +22,8 @@ from arcade.gui import (
     bind,
 )
 from arcade.types import LBWH
+
+W = TypeVar("W", bound="UIWidget")
 
 
 class UIScrollBar(UIWidget):
@@ -210,7 +212,7 @@ class UIScrollArea(UILayout):
         y: float = 0,
         width: float = 300,
         height: float = 300,
-        children: Iterable["UIWidget"] = tuple(),
+        children: Iterable[UIWidget] = tuple(),
         size_hint=None,
         size_hint_min=None,
         size_hint_max=None,
@@ -242,7 +244,7 @@ class UIScrollArea(UILayout):
         bind(self, "scroll_x", self.trigger_full_render)
         bind(self, "scroll_y", self.trigger_full_render)
 
-    def add(self, child: "UIWidget", **kwargs):
+    def add(self, child: W, **kwargs) -> W:
         """Add a child to the widget."""
         if self._children:
             raise ValueError("UIScrollArea can only have one child")
@@ -250,7 +252,9 @@ class UIScrollArea(UILayout):
         super().add(child, **kwargs)
         self.trigger_full_render()
 
-    def remove(self, child: "UIWidget"):
+        return child
+
+    def remove(self, child: UIWidget):
         """Remove a child from the widget."""
         super().remove(child)
         self.trigger_full_render()
