@@ -136,8 +136,8 @@ class Texture2D:
         self._component_size = 0
         self._alignment = 1
         self._target = target
-        self._samples = min(max(0, samples), self._ctx.info.MAX_SAMPLES)
-        self._depth = depth
+        self._samples: int = min(max(0, samples), self._ctx.info.MAX_SAMPLES)
+        self._depth: bool = depth
         self._immutable = immutable
         self._compare_func: str | None = None
         self._anisotropy = 1.0
