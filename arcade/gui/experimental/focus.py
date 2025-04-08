@@ -13,7 +13,7 @@ from arcade.gui.events import (
     UIMousePressEvent,
     UIMouseReleaseEvent,
 )
-from arcade.gui.experimental.controller import (
+from arcade.gui.events import (
     UIControllerButtonPressEvent,
     UIControllerButtonReleaseEvent,
     UIControllerDpadEvent,

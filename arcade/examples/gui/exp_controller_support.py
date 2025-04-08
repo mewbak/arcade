@@ -13,6 +13,7 @@ from typing import Optional
 
 import arcade
 from arcade import Texture
+from arcade.experimental.controller_window import ControllerWindow, ControllerView
 from arcade.gui import (
     UIAnchorLayout,
     UIBoxLayout,
@@ -26,8 +27,7 @@ from arcade.gui import (
     UISlider,
     UIView,
 )
-from arcade.gui.experimental.controller import (
-    UIControllerBridge,
+from arcade.gui.events import (
     UIControllerButtonEvent,
     UIControllerButtonPressEvent,
     UIControllerDpadEvent,
@@ -138,9 +138,9 @@ class ControllerModal(UIMouseFilterMixin, UIFocusGroup):
 
         root = self.add(UIBoxLayout(space_between=10))
 
-        root.add(UIFlatButton(text="Modal Button 1"))
-        root.add(UIFlatButton(text="Modal Button 2"))
-        root.add(UIFlatButton(text="Modal Button 3"))
+        root.add(UIFlatButton(text="Modal Button 1", width=200))
+        root.add(UIFlatButton(text="Modal Button 2", width=200))
+        root.add(UIFlatButton(text="Modal Button 3", width=200))
         root.add(UIFlatButton(text="Close")).on_click = self.close
 
         self.detect_focusable_widgets()
@@ -163,12 +163,10 @@ class ControllerModal(UIMouseFilterMixin, UIFocusGroup):
         self.parent.remove(self)
 
 
-class MyView(UIView):
+class MyView(ControllerView, UIView):
     def __init__(self):
         super().__init__()
         arcade.set_background_color(arcade.color.AMAZON)
-
-        self.controller_bridge = UIControllerBridge(self.ui)
 
         base = self.add_widget(ControllerIndicator())
         self.root = base.add(UIFocusGroup())
@@ -195,6 +193,6 @@ class MyView(UIView):
 
 
 if __name__ == "__main__":
-    window = arcade.Window(title="Controller UI Example")
+    window = ControllerWindow(title="Controller UI Example")
     window.show_view(MyView())
     arcade.run()

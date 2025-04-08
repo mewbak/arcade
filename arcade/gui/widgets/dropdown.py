@@ -7,7 +7,7 @@ import arcade
 from arcade import uicolor
 from arcade.gui import UIEvent, UIMousePressEvent
 from arcade.gui.events import UIOnChangeEvent, UIOnClickEvent
-from arcade.gui.experimental.controller import UIControllerButtonPressEvent
+from arcade.gui.events import UIControllerButtonPressEvent
 from arcade.gui.experimental.focus import UIFocusMixin
 from arcade.gui.ui_manager import UIManager
 from arcade.gui.widgets import UILayout, UIWidget

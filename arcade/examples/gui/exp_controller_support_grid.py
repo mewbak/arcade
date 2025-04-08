@@ -13,14 +13,12 @@ from typing import Dict, Tuple
 
 import arcade
 from arcade.examples.gui.exp_controller_support import ControllerIndicator
+from arcade.experimental.controller_window import ControllerView, ControllerWindow
 from arcade.gui import (
     UIFlatButton,
     UIGridLayout,
     UIView,
     UIWidget,
-)
-from arcade.gui.experimental.controller import (
-    UIControllerBridge,
 )
 from arcade.gui.experimental.focus import Focusable, UIFocusGroup
 
@@ -69,12 +67,10 @@ def setup_grid_focus_transition(grid: Dict[Tuple[int, int], UIWidget]):
                 btn.neighbor_down = grid.get((c, 0))
 
 
-class MyView(UIView):
+class MyView(ControllerView, UIView):
     def __init__(self):
         super().__init__()
         arcade.set_background_color(arcade.color.AMAZON)
-
-        self.controller_bridge = UIControllerBridge(self.ui)
 
         self.root = self.add_widget(ControllerIndicator())
         self.root = self.root.add(UIFocusGroup())
@@ -95,6 +91,6 @@ class MyView(UIView):
 
 
 if __name__ == "__main__":
-    window = arcade.Window(title="Controller UI Example")
+    window = ControllerWindow(title="Controller UI Example")
     window.show_view(MyView())
     arcade.run()
