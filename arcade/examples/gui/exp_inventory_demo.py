@@ -14,8 +14,6 @@ If Arcade and Python are properly installed, you can run this example with:
 python -m arcade.examples.gui.exp_inventory_demo
 """
 
-from functools import partial
-
 # TODO: Drag and Drop
 from typing import List
 
@@ -238,13 +236,13 @@ class EquipmentUI(UIBoxLayout):
         equipment = Equipment()
 
         self.head_slot = self.add(EquipmentSlotUI(equipment, 0))
-        self.head_slot.on_click = partial(self.dispatch_event, "on_slot_clicked", self.head_slot)
+        self.head_slot.on_click = lambda _: self.dispatch_event("on_slot_clicked", self.head_slot)
 
         self.chest_slot = self.add(EquipmentSlotUI(equipment, 1))
-        self.chest_slot.on_click = partial(self.dispatch_event, "on_slot_clicked", self.chest_slot)
+        self.chest_slot.on_click = lambda _: self.dispatch_event("on_slot_clicked", self.chest_slot)
 
         self.legs_slot = self.add(EquipmentSlotUI(equipment, 2))
-        self.legs_slot.on_click = partial(self.dispatch_event, "on_slot_clicked", self.legs_slot)
+        self.legs_slot.on_click = lambda _: self.dispatch_event("on_slot_clicked", self.legs_slot)
 
         EquipmentUI.register_event_type("on_slot_clicked")
 
