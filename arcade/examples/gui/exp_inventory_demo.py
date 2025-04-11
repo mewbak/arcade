@@ -15,19 +15,20 @@ python -m arcade.examples.gui.exp_inventory_demo
 """
 
 from functools import partial
-# TODO: Drag and Drop
 
+# TODO: Drag and Drop
 from typing import List
 
 import pyglet.font
 from pyglet.gl import GL_NEAREST
 
 import arcade
-from arcade import Rect, open_window
+from arcade import Rect
 from arcade.examples.gui.exp_controller_support_grid import (
     ControllerIndicator,
     setup_grid_focus_transition,
 )
+from arcade.experimental.controller_window import ControllerWindow
 from arcade.gui import (
     Property,
     Surface,
@@ -41,7 +42,6 @@ from arcade.gui import (
     UIWidget,
     bind,
 )
-from arcade.gui.experimental.controller import UIControllerBridge
 from arcade.gui.experimental.focus import Focusable, UIFocusGroup
 from arcade.resources import load_kenney_fonts
 
@@ -359,8 +359,6 @@ class MyView(UIView):
     def __init__(self):
         super().__init__()
 
-        self.cb = UIControllerBridge(self.ui)
-
         self.background_color = arcade.color.BLACK
 
         self.inventory = Inventory(30)
@@ -397,7 +395,7 @@ if __name__ == "__main__":
 
     load_kenney_fonts()
 
-    open_window(window_title="Minimal example", width=1280, height=720, resizable=True).show_view(
+    ControllerWindow(title="Minimal example", width=1280, height=720, resizable=True).show_view(
         MyView()
     )
     arcade.run()
