@@ -19,6 +19,11 @@ import arcade
 from arcade.experimental.controller_window import ControllerWindow
 from arcade.gui import UIEvent
 from arcade.gui.events import (
+    UIControllerButtonPressEvent,
+    UIControllerButtonReleaseEvent,
+    UIControllerDpadEvent,
+    UIControllerStickEvent,
+    UIControllerTriggerEvent,
     UIKeyPressEvent,
     UIKeyReleaseEvent,
     UIMouseDragEvent,
@@ -30,13 +35,6 @@ from arcade.gui.events import (
     UITextInputEvent,
     UITextMotionEvent,
     UITextMotionSelectEvent,
-)
-from arcade.gui.events import (
-    UIControllerButtonPressEvent,
-    UIControllerButtonReleaseEvent,
-    UIControllerDpadEvent,
-    UIControllerStickEvent,
-    UIControllerTriggerEvent,
 )
 from arcade.gui.surface import Surface
 from arcade.gui.widgets import UIWidget

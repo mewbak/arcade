@@ -7,16 +7,14 @@ from pyglet.math import Vec2
 import arcade
 from arcade import LBWH, MOUSE_BUTTON_LEFT
 from arcade.gui.events import (
+    UIControllerButtonPressEvent,
+    UIControllerButtonReleaseEvent,
+    UIControllerDpadEvent,
     UIEvent,
     UIKeyPressEvent,
     UIKeyReleaseEvent,
     UIMousePressEvent,
     UIMouseReleaseEvent,
-)
-from arcade.gui.events import (
-    UIControllerButtonPressEvent,
-    UIControllerButtonReleaseEvent,
-    UIControllerDpadEvent,
 )
 from arcade.gui.property import ListProperty, Property, bind
 from arcade.gui.surface import Surface
