@@ -23,8 +23,10 @@ repos:
       - id: mypy
         args: [ --explicit-package-bases ]
         language: system
+        exclude: ^tests/
   - repo: https://github.com/RobertCraigie/pyright-python
     rev: v1.1.396
     hooks:
       - id: pyright
         language: system
+        exclude: ^tests/
