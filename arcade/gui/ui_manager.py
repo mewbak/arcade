@@ -35,6 +35,8 @@ from arcade.gui.events import (
     UITextInputEvent,
     UITextMotionEvent,
     UITextMotionSelectEvent,
+    UIControllerConnectEvent,
+    UIControllerDisconnectEvent,
 )
 from arcade.gui.surface import Surface
 from arcade.gui.widgets import UIWidget
@@ -288,6 +290,8 @@ class UIManager(EventDispatcher):
 
             if isinstance(self.window, ControllerWindow):
                 controller_handlers = {
+                    self.on_connect,
+                    self.on_disconnect,
                     self.on_stick_motion,
                     self.on_trigger_motion,
                     self.on_button_press,
@@ -324,6 +328,8 @@ class UIManager(EventDispatcher):
 
             if isinstance(self.window, ControllerWindow):
                 controller_handlers = {
+                    self.on_connect,
+                    self.on_disconnect,
                     self.on_stick_motion,
                     self.on_trigger_motion,
                     self.on_button_press,
@@ -482,6 +488,14 @@ class UIManager(EventDispatcher):
             surface.resize(size=(width, height), pixel_ratio=scale)
 
         self.trigger_render()
+
+    def on_connect(self, controller: Controller):
+        """Called when a controller is connected."""
+        self.dispatch_ui_event(UIControllerConnectEvent(controller))
+
+    def on_disconnect(self, controller: Controller):
+        """Called when a controller is disconnected."""
+        self.dispatch_ui_event(UIControllerDisconnectEvent(controller))
 
     def on_stick_motion(self, controller: Controller, name, value):
         return self.dispatch_ui_event(UIControllerStickEvent(controller, name, value))

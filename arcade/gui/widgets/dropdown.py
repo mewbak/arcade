@@ -27,6 +27,7 @@ class _UIDropdownOverlay(UIFocusMixin, UIBoxLayout):
 
     def hide(self):
         """Hide the overlay."""
+        self.set_focus(None)
         if self.parent:
             self.parent.remove(self)
 
@@ -196,17 +197,8 @@ class UIDropdown(UILayout):
 
         self._overlay.detect_focusable_widgets()
 
-    def _find_ui_manager(self):
-        # search tree for UIManager
-        parent = self.parent
-        while isinstance(parent, UIWidget):
-            #
-            parent = parent.parent
-
-        return parent if isinstance(parent, UIManager) else None
-
     def _show_overlay(self):
-        manager = self._find_ui_manager()
+        manager = self.get_ui_manager()
         if manager is None:
             raise Exception("UIDropdown could not find UIManager in its parents.")
 

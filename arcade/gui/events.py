@@ -248,6 +248,24 @@ class UIControllerEvent(UIEvent):
 
 
 @dataclass
+class UIControllerConnectEvent(UIControllerEvent):
+    """Triggered when a controller is connected.
+
+    Args:
+        source: The controller that triggered the event.
+    """
+
+
+@dataclass
+class UIControllerDisconnectEvent(UIControllerEvent):
+    """Triggered when a controller is disconnected.
+
+    Args:
+        source: The controller that triggered the event.
+    """
+
+
+@dataclass
 class UIControllerStickEvent(UIControllerEvent):
     """Triggered when a controller stick is moved.
 

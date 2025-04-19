@@ -1,15 +1,17 @@
 import warnings
+from types import EllipsisType
 from typing import Optional
 
 from pyglet.event import EVENT_HANDLED, EVENT_UNHANDLED
 from pyglet.math import Vec2
 
 import arcade
-from arcade import LBWH, MOUSE_BUTTON_LEFT
+from arcade import MOUSE_BUTTON_LEFT
 from arcade.gui.events import (
     UIControllerButtonPressEvent,
     UIControllerButtonReleaseEvent,
     UIControllerDpadEvent,
+    UIControllerEvent,
     UIEvent,
     UIKeyPressEvent,
     UIKeyReleaseEvent,
@@ -18,15 +20,14 @@ from arcade.gui.events import (
 )
 from arcade.gui.property import ListProperty, Property, bind
 from arcade.gui.surface import Surface
-from arcade.gui.ui_manager import UIManager
-from arcade.gui.widgets import UIInteractiveWidget, UIWidget
+from arcade.gui.widgets import FocusMode, UIInteractiveWidget, UIWidget
 from arcade.gui.widgets.layout import UIAnchorLayout
 from arcade.gui.widgets.slider import UIBaseSlider
 
 
 class Focusable(UIWidget):
     """
-    A widget that can be focused and provides additional information about focus behavior.
+    A widget that provides additional information about focus neighbors.
 
     Attributes:
 
@@ -34,58 +35,14 @@ class Focusable(UIWidget):
     neighbor_right: The widget right of this widget.
     neighbor_down: The widget below this widget.
     neighbor_left: The widget left of this widget.
-
     """
 
-    # todo set focused when focused
-    focused = Property(False)
+    focus_mode = FocusMode.ALL
 
     neighbor_up: UIWidget | None = None
     neighbor_right: UIWidget | None = None
     neighbor_down: UIWidget | None = None
     neighbor_left: UIWidget | None = None
-
-    @property
-    def ui(self) -> UIManager | None:
-        """The UIManager this widget is attached to."""
-        w: UIWidget | None = self
-        while w and w.parent:
-            parent = w.parent
-            if isinstance(parent, UIManager):
-                return parent
-
-            w = parent
-        return None
-
-    def _render_focus(self, surface: Surface):
-        # this will be properly integrated into widget
-        self.prepare_render(surface)
-        arcade.draw_rect_outline(
-            rect=LBWH(0, 0, self.content_width, self.content_height),
-            color=arcade.color.WHITE,
-            border_width=4,
-        )
-
-    def _do_render(self, surface: Surface, force=False) -> bool:
-        rendered = False
-
-        should_render = force or self._requires_render
-        if should_render and self.visible:
-            rendered = True
-            self.do_render_base(surface)
-            self.do_render(surface)
-
-            if self.focused:
-                self._render_focus(surface)
-
-            self._requires_render = False
-
-        # only render children if self is visible
-        if self.visible:
-            for child in self.children:
-                rendered |= child._do_render(surface, should_render)
-
-        return rendered
 
 
 class UIFocusMixin(UIWidget):
@@ -93,21 +50,21 @@ class UIFocusMixin(UIWidget):
 
     UIFocusGroup maintains two lists of widgets:
     - The list of focusable widgets.
-    - The list of widgets in.
+    - The list of widgets within (normal widget children).
 
     Use `detect_focusable_widgets()` to automatically detect focusable widgets
-    or add_widget to add them manually.
+    or explicitly use `add_widget()`.
 
-    The Group can be navigated with the keyboard or controller.
+    The Group can be navigated with the keyboard (TAB/ SHIFT + TAB) or controller (DPad).
 
     - DPAD: Navigate between focusable widgets. (up, down, left, right)
     - TAB: Navigate between focusable widgets.
-    - A Button or SPACE: Interact with the focused widget.
+    - 'A' Button or SPACE: Interact with the focused widget.
 
     """
 
+    _focused_widget = Property[UIWidget | None](None)
     _focusable_widgets = ListProperty[UIWidget]()
-    _focused = Property(0)
     _interacting: UIWidget | None = None
 
     _debug = Property(False)
@@ -116,12 +73,20 @@ class UIFocusMixin(UIWidget):
         super().__init__(*args, **kwargs)
 
         bind(self, "_debug", self.trigger_full_render)
-        bind(self, "_focused", self.trigger_full_render)
+        bind(self, "_focused_widget", self.trigger_full_render)
         bind(self, "_focusable_widgets", self.trigger_full_render)
 
     def on_event(self, event: UIEvent) -> Optional[bool]:
+        # pass events to children first, including controller events
+        # so they can handle them
         if super().on_event(event):
             return EVENT_HANDLED
+
+        if isinstance(event, UIControllerEvent):
+            # if no focused widget, set the first focusable widget
+            if self.focused_widget is None and self._focusable_widgets:
+                self.set_focus()
+                return EVENT_HANDLED
 
         if isinstance(event, UIKeyPressEvent):
             if event.symbol == arcade.key.TAB:
@@ -141,7 +106,7 @@ class UIFocusMixin(UIWidget):
                 self.end_interaction()
                 return EVENT_HANDLED
 
-        if isinstance(event, UIControllerDpadEvent):
+        elif isinstance(event, UIControllerDpadEvent):
             if self._interacting:
                 # TODO this should be handled in the slider!
                 # pass dpad events to the interacting widget
@@ -184,44 +149,15 @@ class UIFocusMixin(UIWidget):
 
         return EVENT_UNHANDLED
 
-    def _ensure_focused_property(self):
-        # TODO this is a hack, to set the focused property on the focused widget
-        # this should be properly handled in a property or so
-
-        focused = self._get_focused_widget()
-
-        for widget in self._focusable_widgets:
-            if isinstance(widget, Focusable):
-                if widget == focused:
-                    widget.focused = True
-                else:
-                    widget.focused = False
-
-    def _get_focused_widget(self) -> UIWidget | None:
-        if len(self._focusable_widgets) == 0:
-            return None
-
-        if len(self._focusable_widgets) <= self._focused < 0:
-            warnings.warn("Focused widget is out of range")
-            self._focused = 0
-
-        return self._focusable_widgets[self._focused]
-
-    def add_widget(self, widget):
-        self._focusable_widgets.append(widget)
-
     @classmethod
     def _walk_widgets(cls, root: UIWidget):
         for child in reversed(root.children):
             yield child
             yield from cls._walk_widgets(child)
 
-    def detect_focusable_widgets(self, root: UIWidget | None = None):
+    def detect_focusable_widgets(self):
         """Automatically detect focusable widgets."""
-        if root is None:
-            root = self
-
-        widgets = self._walk_widgets(root)
+        widgets = self._walk_widgets(self)
 
         focusable_widgets = []
         for widget in reversed(list(widgets)):
@@ -230,58 +166,119 @@ class UIFocusMixin(UIWidget):
 
         self._focusable_widgets = focusable_widgets
 
+    @property
+    def focused_widget(self) -> UIWidget | None:
+        """Return the currently focused widget.
+        If no widget is focused, return None."""
+        return self._focused_widget
+
+    def set_focus(self, widget: UIWidget | None | EllipsisType = ...):
+        """Set the focus to a specific widget.
+
+        Set the focus to a specific widget. The widget must be in the list of
+        focusable widgets. If the widget is not in the list, a ValueError is raised.
+
+        Setting the focus to None will remove the focus from the current widget.
+        If `...` is passed (default), the focus will be set to the first
+        focusable widget in the list.
+
+        Args:
+            widget: The widget to focus.
+        """
+        # de-focus the current widget
+        if widget is None:
+            if self.focused_widget is not None:
+                self.focused_widget.focused = False
+                self._focused_widget = None
+            return
+
+        # resolve ...
+        if widget is Ellipsis:
+            if self._focusable_widgets:
+                widget = self._focusable_widgets[0]
+            else:
+                raise ValueError(
+                    "No focusable widgets in the group, "
+                    "use `detect_focusable_widgets()` to detect them."
+                )
+
+        # handle new focus
+        if widget not in self._focusable_widgets:
+            raise ValueError("Widget is not focusable or not in the group.")
+
+        if self.focused_widget is not None:
+            self.focused_widget.focused = False
+        widget.focused = True
+        self._focused_widget = widget
+
     def focus_up(self):
-        widget = self._get_focused_widget()
+        widget = self.focused_widget
         if isinstance(widget, Focusable):
             if widget.neighbor_up:
-                _index = self._focusable_widgets.index(widget.neighbor_up)
-                self._focused = _index
+                self.set_focus(widget.neighbor_up)
                 return
 
         self.focus_previous()
 
     def focus_down(self):
-        widget = self._get_focused_widget()
+        widget = self.focused_widget
         if isinstance(widget, Focusable):
             if widget.neighbor_down:
-                _index = self._focusable_widgets.index(widget.neighbor_down)
-                self._focused = _index
+                self.set_focus(widget.neighbor_down)
                 return
 
         self.focus_next()
 
     def focus_left(self):
-        widget = self._get_focused_widget()
+        widget = self.focused_widget
         if isinstance(widget, Focusable):
             if widget.neighbor_left:
-                _index = self._focusable_widgets.index(widget.neighbor_left)
-                self._focused = _index
+                self.set_focus(widget.neighbor_left)
                 return
 
         self.focus_previous()
 
     def focus_right(self):
-        widget = self._get_focused_widget()
+        widget = self.focused_widget
         if isinstance(widget, Focusable):
             if widget.neighbor_right:
-                _index = self._focusable_widgets.index(widget.neighbor_right)
-                self._focused = _index
+                self.set_focus(widget.neighbor_right)
                 return
 
         self.focus_next()
 
     def focus_next(self):
-        self._focused += 1
-        if self._focused >= len(self._focusable_widgets):
-            self._focused = 0
+        """Focus the next widget in the list of focusable widgets of this group"""
+        if self.focused_widget is None:
+            warnings.warn("No focused widget. Do not change focus.")
+            return
+
+        if self.focused_widget not in self._focusable_widgets:
+            warnings.warn("Focused widget not in focusable widgets list. Do not change focus.")
+            return
+
+        focused_index = self._focusable_widgets.index(self.focused_widget) + 1
+        focused_index %= len(self._focusable_widgets)  # wrap around
+        self.set_focus(self._focusable_widgets[focused_index])
 
     def focus_previous(self):
-        self._focused -= 1
-        if self._focused < 0:
-            self._focused = len(self._focusable_widgets) - 1
+        """Focus the previous widget in the list of focusable widgets of this group"""
+        if self.focused_widget is None:
+            warnings.warn("No focused widget. Do not change focus.")
+            return
+
+        if self.focused_widget not in self._focusable_widgets:
+            warnings.warn("Focused widget not in focusable widgets list. Do not change focus.")
+            return
+
+        focused_index = self._focusable_widgets.index(self.focused_widget) - 1
+        # automatically wrap around via index -1
+        self.set_focus(self._focusable_widgets[focused_index])
 
     def start_interaction(self):
-        widget = self._get_focused_widget()
+        # TODO this should be handled in the widget
+
+        widget = self.focused_widget
 
         if isinstance(widget, UIInteractiveWidget):
             widget.dispatch_ui_event(
@@ -298,7 +295,7 @@ class UIFocusMixin(UIWidget):
             print("Cannot interact widget")
 
     def end_interaction(self):
-        widget = self._get_focused_widget()
+        widget = self.focused_widget
 
         if isinstance(widget, UIInteractiveWidget):
             if isinstance(self._interacting, UIBaseSlider):
@@ -321,10 +318,6 @@ class UIFocusMixin(UIWidget):
             )
 
     def _do_render(self, surface: Surface, force=False) -> bool:
-        # TODO this is a hack, to set the focused property on the focused widget
-        self._ensure_focused_property()
-
-        # TODO: add a post child render hook to UIWidget
         rendered = super()._do_render(surface, force)
 
         if rendered:
@@ -335,19 +328,9 @@ class UIFocusMixin(UIWidget):
     def do_post_render(self, surface: Surface):
         surface.limit(None)
 
-        widget = self._get_focused_widget()
+        widget = self.focused_widget
         if not widget:
             return
-
-        if isinstance(widget, Focusable):
-            # Focusable widgets care about focus themselves
-            pass
-        else:
-            arcade.draw_rect_outline(
-                rect=widget.rect,
-                color=arcade.color.WHITE,
-                border_width=2,
-            )
 
         if self._debug:
             # debugging
@@ -383,7 +366,7 @@ class UIFocusMixin(UIWidget):
 
     @staticmethod
     def is_focusable(widget):
-        return isinstance(widget, (Focusable, UIInteractiveWidget))
+        return widget.focus_mode is not FocusMode.NONE
 
 
 class UIFocusGroup(UIFocusMixin, UIAnchorLayout):

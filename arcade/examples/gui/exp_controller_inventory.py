@@ -11,14 +11,16 @@ Main features are:
 - Controller support
 
 If Arcade and Python are properly installed, you can run this example with:
-python -m arcade.examples.gui.exp_inventory_demo
+python -m arcade.examples.gui.exp_controller_inventory
 """
 
 # TODO: Drag and Drop
-from typing import List
+from typing import List, Optional
 
 import pyglet.font
+from pyglet.event import EVENT_HANDLED
 from pyglet.gl import GL_NEAREST
+from pyglet.input import Controller
 
 import arcade
 from arcade import Rect
@@ -26,7 +28,7 @@ from arcade.examples.gui.exp_controller_support_grid import (
     ControllerIndicator,
     setup_grid_focus_transition,
 )
-from arcade.experimental.controller_window import ControllerWindow
+from arcade.experimental.controller_window import ControllerWindow, ControllerView
 from arcade.gui import (
     Property,
     Surface,
@@ -39,7 +41,9 @@ from arcade.gui import (
     UIView,
     UIWidget,
     bind,
+    UIEvent,
 )
+from arcade.gui.events import UIControllerButtonPressEvent
 from arcade.gui.experimental.focus import Focusable, UIFocusGroup
 from arcade.resources import load_kenney_fonts
 
@@ -297,7 +301,7 @@ class InventoryModal(ActiveSlotTrackerMixin, UIFocusGroup, UIAnchorLayout):
         super().__init__(size_hint=(0.8, 0.8), **kwargs)
         self.with_padding(all=10)
         self.with_background(color=arcade.uicolor.GREEN_GREEN_SEA)
-        self._debug = True
+        self._debug = False
 
         self.add(
             UILabel(text="Inventory", font_size=20, font_name="Kenney Blocks", bold=True),
@@ -336,24 +340,32 @@ class InventoryModal(ActiveSlotTrackerMixin, UIFocusGroup, UIAnchorLayout):
             inv_slot.neighbor_right = eq_slot
             eq_slot.neighbor_left = inv_slot
 
-        # focusable widgets
-        self.detect_focusable_widgets()
-
-        # close button, not focusable (controller use B to close)
-        close_button = self.add(
+        # close button not part of the normal focus rotation, but can be focused with "b"
+        self.close_button = self.add(
             # todo: find out why X is not in center
             UIFlatButton(text="X", width=40, height=40),
             anchor_x="right",
             anchor_y="top",
         )
-        close_button.on_click = lambda _: self.close()  # type: ignore
+        self.close_button.on_click = lambda _: self.close()  # type: ignore
+
+        # init controller support
+        self.detect_focusable_widgets()
+
+    def on_event(self, event: UIEvent) -> Optional[bool]:
+        if isinstance(event, UIControllerButtonPressEvent):
+            if event.button == "b":
+                self.set_focus(self.close_button)
+                return EVENT_HANDLED
+
+        return super().on_event(event)
 
     def close(self):
+        self.visible = False
         self.trigger_full_render()
-        self.parent.remove(self)
 
 
-class MyView(UIView):
+class MyView(UIView, ControllerView):
     def __init__(self):
         super().__init__()
 
@@ -368,19 +380,32 @@ class MyView(UIView):
         self.root = self.add_widget(UIAnchorLayout())
         self.add_widget(ControllerIndicator())
 
-        self.show_inventory()
+        text = self.root.add(
+            UILabel(
+                text="Open Inventory with 'Select' button on a controller or 'I' key", font_size=24
+            )
+        )
+        text.fit_content()
+        text.center_on_screen()
 
-    def show_inventory(self):
-        self.root.add(InventoryModal(self.inventory))
+        self._inventory_modal = self.root.add(InventoryModal(self.inventory))
+
+    def toggle_inventory(self):
+        self._inventory_modal.visible = not self._inventory_modal.visible
 
     def on_key_press(self, symbol: int, modifiers: int) -> bool | None:
         if symbol == arcade.key.I:
-            print("Show inventory")
-            for i, item in enumerate(self.inventory):
-                print(i, item.symbol if item else "-")
+            self.toggle_inventory()
             return True
 
         return super().on_key_press(symbol, modifiers)
+
+    def on_button_press(self, controller: Controller, button):
+        if button == "back":
+            self.toggle_inventory()
+            return True
+
+        return super().on_button_press(controller, button)
 
     def on_draw_before_ui(self):
         pass
@@ -388,6 +413,7 @@ class MyView(UIView):
 
 if __name__ == "__main__":
     # pixelate the font
+    pyglet.options.text_antialiasing = False
     pyglet.font.base.Font.texture_min_filter = GL_NEAREST
     pyglet.font.base.Font.texture_mag_filter = GL_NEAREST
 
