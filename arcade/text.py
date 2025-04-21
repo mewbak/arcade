@@ -187,7 +187,7 @@ class Text:
             text_2 = Text("Hello, World 2", 0, 100, batch=batch)
             text_3 = Text("Hello, World 2", 0, 150, batch=batch)
             # Draw the batch
-            bach.draw()
+            batch.draw()
             # Remove a text instance from the batch
             text_2.batch = None
 
