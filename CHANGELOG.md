@@ -8,6 +8,7 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 - GUI
   - Fix `UIScrollArea.add` always returning None
   - Support `layer` in `UIView.add_widget()`
+  - Experimental controller support (incl. documentation)
 - Text objects are now lazy and can be created before the window
 
 ## Version 3.1.0
