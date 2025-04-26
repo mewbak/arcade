@@ -47,6 +47,7 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
         size_hint_min: Minimum size hint of the slider.
         size_hint_max: Maximum size hint of the slider.
         style: Used to style the slider for different states.
+        step: Smallest change the slider value can move by.
         **kwargs: Passed to UIInteractiveWidget.
 
     """
@@ -67,6 +68,7 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
         size_hint_min=None,
         size_hint_max=None,
         style: Union[Mapping[str, UISliderStyle], None] = None,
+        step: Union[float, None] = None,
         **kwargs,
     ):
         super().__init__(
@@ -81,7 +83,8 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
             **kwargs,
         )
 
-        self.value = value
+        self.step = step
+        self.value = self._apply_step(value)
         self.min_value = min_value
         self.max_value = max_value
 
@@ -94,6 +97,13 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
         bind(self, "disabled", self.trigger_render)
 
         self.register_event_type("on_change")
+
+    def _apply_step(self, value: float):
+        if self.step:
+            inverse = 1 / self.step
+            return round(value * inverse) / inverse
+
+        return value
 
     def _x_for_value(self, value: float):
         """Provides the x coordinate for the given value."""
@@ -110,7 +120,9 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
     @norm_value.setter
     def norm_value(self, value):
         """Normalized value between 0.0 and 1.0"""
-        self.value = min(value * (self.max_value - self.min_value) + self.min_value, self.max_value)
+        self.value = self._apply_step(
+            min(value * (self.max_value - self.min_value) + self.min_value, self.max_value)
+        )
 
     @property
     def _thumb_x(self):
@@ -254,7 +266,7 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
         width: Width of the slider.
         height: Height of the slider.
         style: Used to style the slider for different states.
-
+        step: Smallest change the slider value can move by.
     """
 
     UIStyle = UISliderStyle
@@ -294,6 +306,7 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
         size_hint_min=None,
         size_hint_max=None,
         style: Union[dict[str, UISliderStyle], None] = None,
+        step: Union[float, None] = None,
         **kwargs,
     ):
         super().__init__(
@@ -308,6 +321,7 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
             size_hint_min=size_hint_min,
             size_hint_max=size_hint_max,
             style=style or UISlider.DEFAULT_STYLE,
+            step=step,
             **kwargs,
         )
 
