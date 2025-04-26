@@ -3,15 +3,12 @@
 You can grab pre-release versions from PyPi. See the available versions from the
 Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 
-## Version 3.1.2 (unreleased)
+## Version 3.2 (unreleased)
 
 - GUI
-  - Fix `UIScrollArea.add` always returning None 
+  - Fix `UIScrollArea.add` always returning None
   - Support `layer` in `UIView.add_widget()`
-
-## Version 3.1.1
-
-* Text objects are now lazy and can be created before the window
+- Text objects are now lazy and can be created before the window
 
 ## Version 3.1.0
 
@@ -26,11 +23,11 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
   - `arcade.gui.widgets.text.UIInputText`
     - now supports styles for `normal`, `disabled`, `hovered`, `pressed` and `invalid` states
     - provides a `invalid` property to indicate if the input is invalid
-  - Added experimental `arcade.gui.experimental.UIRestrictedInput` 
+  - Added experimental `arcade.gui.experimental.UIRestrictedInput`
     a subclass of `UIInputText` that restricts the input to a specific set of characters
   - `arcade.gui.NinePatchTexture` is now lazy and can be created before a window exists allowing creation during imports.
   - Improve `arcade.gui.experimental.scroll_area.ScrollBar` behavior to match HTML scrollbars
-- Support drawing hitboxes using RBG or RGBA 
+- Support drawing hitboxes using RBG or RGBA
 - Fixed a bug causing some events to not trigger on the window's keyboard and mouse state handlers
 - Many documenation fixes and improvements
 - Various example fixes
