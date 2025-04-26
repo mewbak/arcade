@@ -25,7 +25,7 @@ from arcade.gui.widgets.layout import UIAnchorLayout
 from arcade.gui.widgets.slider import UIBaseSlider
 
 
-class Focusable(UIWidget):
+class UIFocusable(UIWidget):
     """
     A widget that provides additional information about focus neighbors.
 
@@ -98,12 +98,12 @@ class UIFocusMixin(UIWidget):
                 return EVENT_HANDLED
 
             elif event.symbol == arcade.key.SPACE:
-                self.start_interaction()
+                self._start_interaction()
                 return EVENT_HANDLED
 
         elif isinstance(event, UIKeyReleaseEvent):
             if event.symbol == arcade.key.SPACE:
-                self.end_interaction()
+                self._end_interaction()
                 return EVENT_HANDLED
 
         elif isinstance(event, UIControllerDpadEvent):
@@ -140,11 +140,11 @@ class UIFocusMixin(UIWidget):
 
         elif isinstance(event, UIControllerButtonPressEvent):
             if event.button == "a":
-                self.start_interaction()
+                self._start_interaction()
                 return EVENT_HANDLED
         elif isinstance(event, UIControllerButtonReleaseEvent):
             if event.button == "a":
-                self.end_interaction()
+                self._end_interaction()
                 return EVENT_HANDLED
 
         return EVENT_UNHANDLED
@@ -213,7 +213,7 @@ class UIFocusMixin(UIWidget):
 
     def focus_up(self):
         widget = self.focused_widget
-        if isinstance(widget, Focusable):
+        if isinstance(widget, UIFocusable):
             if widget.neighbor_up:
                 self.set_focus(widget.neighbor_up)
                 return
@@ -222,7 +222,7 @@ class UIFocusMixin(UIWidget):
 
     def focus_down(self):
         widget = self.focused_widget
-        if isinstance(widget, Focusable):
+        if isinstance(widget, UIFocusable):
             if widget.neighbor_down:
                 self.set_focus(widget.neighbor_down)
                 return
@@ -231,7 +231,7 @@ class UIFocusMixin(UIWidget):
 
     def focus_left(self):
         widget = self.focused_widget
-        if isinstance(widget, Focusable):
+        if isinstance(widget, UIFocusable):
             if widget.neighbor_left:
                 self.set_focus(widget.neighbor_left)
                 return
@@ -240,7 +240,7 @@ class UIFocusMixin(UIWidget):
 
     def focus_right(self):
         widget = self.focused_widget
-        if isinstance(widget, Focusable):
+        if isinstance(widget, UIFocusable):
             if widget.neighbor_right:
                 self.set_focus(widget.neighbor_right)
                 return
@@ -275,7 +275,7 @@ class UIFocusMixin(UIWidget):
         # automatically wrap around via index -1
         self.set_focus(self._focusable_widgets[focused_index])
 
-    def start_interaction(self):
+    def _start_interaction(self):
         # TODO this should be handled in the widget
 
         widget = self.focused_widget
@@ -294,7 +294,7 @@ class UIFocusMixin(UIWidget):
         else:
             print("Cannot interact widget")
 
-    def end_interaction(self):
+    def _end_interaction(self):
         widget = self.focused_widget
 
         if isinstance(widget, UIInteractiveWidget):
@@ -334,7 +334,7 @@ class UIFocusMixin(UIWidget):
 
         if self._debug:
             # debugging
-            if isinstance(widget, Focusable):
+            if isinstance(widget, UIFocusable):
                 if widget.neighbor_up:
                     self._draw_indicator(
                         widget.rect.top_center,

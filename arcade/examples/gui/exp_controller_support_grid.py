@@ -20,10 +20,10 @@ from arcade.gui import (
     UIView,
     UIWidget,
 )
-from arcade.gui.experimental.focus import Focusable, UIFocusGroup
+from arcade.gui.experimental.focus import UIFocusable, UIFocusGroup
 
 
-class FocusableButton(Focusable, UIFlatButton):
+class FocusableButton(UIFocusable, UIFlatButton):
     pass
 
 
@@ -43,7 +43,7 @@ def setup_grid_focus_transition(grid: Dict[Tuple[int, int], UIWidget]):
     for c in range(cols):
         for r in range(rows):
             btn = grid.get((c, r))
-            if btn is None or not isinstance(btn, Focusable):
+            if btn is None or not isinstance(btn, UIFocusable):
                 continue
 
             if c > 0:

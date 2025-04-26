@@ -44,7 +44,7 @@ from arcade.gui import (
     UIEvent,
 )
 from arcade.gui.events import UIControllerButtonPressEvent
-from arcade.gui.experimental.focus import Focusable, UIFocusGroup
+from arcade.gui.experimental.focus import UIFocusable, UIFocusGroup
 from arcade.resources import load_kenney_fonts
 
 
@@ -143,7 +143,7 @@ class Equipment(Inventory):
         self[2] = value
 
 
-class InventorySlotUI(Focusable, UIFlatButton):
+class InventorySlotUI(UIFocusable, UIFlatButton):
     """Represents a single inventory slot.
     The slot accesses a specific index in the inventory.
 
