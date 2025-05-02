@@ -316,6 +316,18 @@ A castle adventure through a dungeon and caverns by Paul Craven.
 
 .. _GitHub repo for Two Worlds: https://github.com/pvcraven/two_worlds
 
+Mama Nyah's House of Tarot
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A tarot card reading game currently available on Steam made by Cat & Mallard Studios
+
+.. image:: /images/community/games/house_of_tarot.png
+   :width: 75%
+
+`GitHub repo for Mama Nyah's House of Tarot`_
+
+.. _GitHub repo for Mama Nyah's House of Tarot: https://github.com/DevinReid/Tarot_Generate_Arcade
+
 Simpson College Spring 2017 CMSC 150 Course
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
