@@ -328,6 +328,10 @@ A tarot card reading game currently available on Steam made by Cat & Mallard Stu
 
 .. _GitHub repo for Mama Nyah's House of Tarot: https://github.com/DevinReid/Tarot_Generate_Arcade
 
+`Steam page for Mama Nyah's House of Tarot`_
+
+.. _Steam page for Mama Nyah's House of Tarot: https://store.steampowered.com/app/3582900/Mama_Nyahs_House_of_Tarot/
+
 Simpson College Spring 2017 CMSC 150 Course
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
