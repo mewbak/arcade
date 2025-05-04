@@ -319,6 +319,7 @@ class UIScrollArea(UILayout):
             self.do_render_base(surface)
             self.do_render(surface)
             self._rendered = True
+            self._requires_render = False
 
         return rendered
 

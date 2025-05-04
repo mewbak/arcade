@@ -47,6 +47,7 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
         size_hint_min: Minimum size hint of the slider.
         size_hint_max: Maximum size hint of the slider.
         style: Used to style the slider for different states.
+        step: Smallest change the slider value can move by.
         **kwargs: Passed to UIInteractiveWidget.
 
     """
@@ -67,6 +68,7 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
         size_hint_min=None,
         size_hint_max=None,
         style: Union[Mapping[str, UISliderStyle], None] = None,
+        step: Union[float, None] = None,
         **kwargs,
     ):
         super().__init__(
@@ -81,6 +83,7 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
             **kwargs,
         )
 
+        self.step = step
         self.value = value
         self.min_value = min_value
         self.max_value = max_value
@@ -89,11 +92,27 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
 
         # trigger render on value changes
         bind(self, "value", self.trigger_full_render)
+        bind(self, "value", self._ensure_step)
         bind(self, "hovered", self.trigger_render)
         bind(self, "pressed", self.trigger_render)
         bind(self, "disabled", self.trigger_render)
 
         self.register_event_type("on_change")
+
+    def _ensure_step(self):
+        """Ensure that the step is applied."""
+        if self.step is not None:
+            # this will trigger the change once again
+            # only option to prevent this would be to make `value` a property,
+            # which might break code of users
+            self.value = self._apply_step(self.value)
+
+    def _apply_step(self, value: float):
+        if self.step:
+            inverse = 1 / self.step
+            return round(value * inverse) / inverse
+
+        return value
 
     def _change_value(self, value: float):
         # TODO changing the value itself should trigger this event
@@ -151,6 +170,7 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
         """Render the slider, including track and thumb."""
         self.prepare_render(surface)
         self._render_track(surface)
+        self._render_steps(surface)
         self._render_thumb(surface)
 
     @abstractmethod
@@ -160,6 +180,19 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
         This method should be implemented in a slider implementation.
 
         Track should stay within self.content_rect.
+
+        Args:
+                surface: Surface to render on.
+        """
+        pass
+
+    @abstractmethod
+    def _render_steps(self, surface: Surface):
+        """Render the steps of the slider track.
+
+        This method should be implemented in a slider implementation.
+
+        Steps should stay within self.content_rect.
 
         Args:
                 surface: Surface to render on.
@@ -239,15 +272,18 @@ class UISliderStyle(UIStyleBase):
         border: Border color.
         border_width: Width of the border.
         filled_track: Color of the filled track.
+        filled_step: Color of the step in filled area.
         unfilled_track: Color of the unfilled track.
-
+        unfilled_step: Color of the step in unfilled area.
     """
 
     bg: RGBA255 = uicolor.WHITE_SILVER
     border: RGBA255 = uicolor.DARK_BLUE_MIDNIGHT_BLUE
     border_width: int = 2
     filled_track: RGBA255 = uicolor.DARK_BLUE_MIDNIGHT_BLUE
+    filled_step: RGBA255 | None = uicolor.BLUE_PETER_RIVER
     unfilled_track: RGBA255 = uicolor.WHITE_SILVER
+    unfilled_step: RGBA255 | None = uicolor.BLUE_PETER_RIVER
 
 
 class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
@@ -269,7 +305,7 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
         width: Width of the slider.
         height: Height of the slider.
         style: Used to style the slider for different states.
-
+        step: Smallest change the slider value can move by.
     """
 
     UIStyle = UISliderStyle
@@ -280,12 +316,14 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
             border=uicolor.BLUE_PETER_RIVER,
             border_width=2,
             filled_track=uicolor.BLUE_PETER_RIVER,
+            filled_step=uicolor.DARK_BLUE_MIDNIGHT_BLUE,
         ),
         "press": UIStyle(
             bg=uicolor.BLUE_PETER_RIVER,
             border=uicolor.DARK_BLUE_WET_ASPHALT,
             border_width=3,
             filled_track=uicolor.BLUE_PETER_RIVER,
+            filled_step=uicolor.DARK_BLUE_MIDNIGHT_BLUE,
         ),
         "disabled": UIStyle(
             bg=uicolor.WHITE_SILVER,
@@ -294,6 +332,38 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
             unfilled_track=uicolor.WHITE_SILVER,
         ),
     }
+
+    NO_STEP_STYLE = {
+        "normal": UIStyle(
+            filled_step=None,
+            unfilled_step=None,
+        ),
+        "hover": UIStyle(
+            border=uicolor.BLUE_PETER_RIVER,
+            border_width=2,
+            filled_track=uicolor.BLUE_PETER_RIVER,
+            filled_step=None,
+            unfilled_step=None,
+        ),
+        "press": UIStyle(
+            bg=uicolor.BLUE_PETER_RIVER,
+            border=uicolor.DARK_BLUE_WET_ASPHALT,
+            border_width=3,
+            filled_track=uicolor.BLUE_PETER_RIVER,
+            filled_step=None,
+            unfilled_step=None,
+        ),
+        "disabled": UIStyle(
+            bg=uicolor.WHITE_SILVER,
+            border_width=1,
+            filled_track=uicolor.GRAY_ASBESTOS,
+            unfilled_track=uicolor.WHITE_SILVER,
+            filled_step=None,
+            unfilled_step=None,
+        ),
+    }
+    """Removing the step colors from the style.
+    So sliders with a step value do not show the steps visually."""
 
     def __init__(
         self,
@@ -309,6 +379,7 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
         size_hint_min=None,
         size_hint_max=None,
         style: Union[dict[str, UISliderStyle], None] = None,
+        step: Union[float, None] = None,
         **kwargs,
     ):
         super().__init__(
@@ -323,6 +394,7 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
             size_hint_min=size_hint_min,
             size_hint_max=size_hint_max,
             style=style or UISlider.DEFAULT_STYLE,
+            step=step,
             **kwargs,
         )
 
@@ -374,6 +446,45 @@ class UISlider(UIStyledWidget[UISliderStyle], UIBaseSlider):
             slider_height,
             fg_slider_color,
         )
+
+    @override
+    def _render_steps(self, surface: Surface):
+        if not self.step:
+            return
+
+        style = self.get_current_style()
+        if style is None:
+            warnings.warn(f"No style found for state {self.get_current_state()}", UserWarning)
+            return
+
+        unfilled_steps = style.get("unfilled_step", UISlider.UIStyle.unfilled_step)
+        filled_steps = style.get("filled_step", UISlider.UIStyle.filled_step)
+
+        def float_range(start, stop, step):
+            while start < stop:
+                yield start
+                start += step
+            yield stop
+
+        steps = list(float_range(self.min_value, self.max_value, self.step))
+
+        for v in steps:
+            step_x = self._x_for_value(v) - self.content_rect.left
+            step_color = filled_steps if v <= self.value else unfilled_steps
+
+            if step_color:
+                # bigger circle for first and last step
+                circle_size = self._cursor_width // 4
+                if v in (steps[0], steps[-1]):
+                    circle_size = self._cursor_width // 2
+
+                arcade.draw_circle_filled(
+                    step_x,
+                    self.content_height // 2,
+                    circle_size,
+                    step_color,
+                    num_segments=8,
+                )
 
     @override
     def _render_thumb(self, surface: Surface):

@@ -8,8 +8,13 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 - GUI
   - Fix `UIScrollArea.add` always returning None
   - Support `layer` in `UIView.add_widget()`
+  - Fix a bug which caused `UIScrollArea` to refresh on every frame
+  - Add stepping to `UISlider` (thanks [csd4ni3l](https://github.com/csd4ni3l))
   - Experimental controller support (incl. documentation)
 - Text objects are now lazy and can be created before the window
+- Introduce `arcade.SpriteSequence[T]` as a covariant supertype of `arcade.SpriteList[T]`
+  (this is similar to Python's `Sequence[T]`, which is a supertype of `list[T]`)
+  and various improvements to the typing of the API that leverage it
 
 ## Version 3.1.0
 
