@@ -114,9 +114,9 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
 
         return value
 
-    def _change_value(self, value: float):
-        # TODO changing the value itself should trigger this event
-        # current problem is, that the property does not pass the old value to change listeners
+    def _set_value(self, value: float):
+        # TODO changing the value itself should trigger `on_change` event
+        # current problem is, that the property does not pass the old value to listeners
         if value < self.min_value:
             value = self.min_value
         elif value > self.max_value:
@@ -145,7 +145,7 @@ class UIBaseSlider(UIInteractiveWidget, metaclass=ABCMeta):
     def norm_value(self, value):
         """Normalized value between 0.0 and 1.0"""
         new_value = min(value * (self.max_value - self.min_value) + self.min_value, self.max_value)
-        self._change_value(new_value)
+        self._set_value(new_value)
 
     @property
     def _thumb_x(self):
