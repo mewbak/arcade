@@ -6,21 +6,19 @@ from pyglet.event import EVENT_UNHANDLED
 
 import arcade
 from arcade import XYWH
-from arcade.gui import (
-    Property,
-    Surface,
+from arcade.gui.events import (
     UIEvent,
-    UIKeyPressEvent,
-    UILayout,
     UIMouseDragEvent,
     UIMouseEvent,
     UIMouseMovementEvent,
     UIMousePressEvent,
     UIMouseReleaseEvent,
     UIMouseScrollEvent,
-    UIWidget,
-    bind,
 )
+from arcade.gui.property import Property, bind
+from arcade.gui.surface import Surface
+from arcade.gui.widgets import UIWidget
+from arcade.gui.widgets.layout import UILayout
 from arcade.types import LBWH
 
 W = TypeVar("W", bound="UIWidget")
@@ -44,8 +42,6 @@ class UIScrollBar(UIWidget):
         self.with_background(color=arcade.color.LIGHT_GRAY)
         self.with_border(color=arcade.uicolor.GRAY_CONCRETE)
         self.vertical = vertical
-
-        # self._scroll_bar_size = 20
 
         bind(self, "_thumb_hover", self.trigger_render)
         bind(self, "_dragging", self.trigger_render)
@@ -101,9 +97,6 @@ class UIScrollBar(UIWidget):
         if isinstance(event, UIMouseReleaseEvent) and self._dragging:
             self._dragging = False
             return True
-
-        if isinstance(event, UIKeyPressEvent):
-            print(self._scroll_bar_size())
 
         return EVENT_UNHANDLED
 

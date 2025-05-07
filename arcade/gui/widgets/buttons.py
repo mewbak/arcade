@@ -150,7 +150,7 @@ class UITextureButton(UIInteractiveWidget, UIStyledWidget[UITextureButtonStyle],
             return "disabled"
         elif self.pressed:
             return "press"
-        elif self.hovered:
+        elif self.hovered or self.focused:
             return "hover"
         else:
             return "normal"
@@ -346,7 +346,7 @@ class UIFlatButton(UIInteractiveWidget, UIStyledWidget[UIFlatButtonStyle], UITex
             return "disabled"
         elif self.pressed:
             return "press"
-        elif self.hovered:
+        elif self.hovered or self.focused:
             return "hover"
         else:
             return "normal"
