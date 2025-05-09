@@ -1,6 +1,6 @@
 from array import array
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 
 from PIL import Image
 from pyglet.math import Vec2, Vec4
