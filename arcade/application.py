@@ -172,6 +172,8 @@ class Window(pyglet.window.Window):
             gl_version = 3, 1
             gl_api = "gles"
 
+        self.closed = False
+        """Indicates if the window was closed"""
         self.headless: bool = arcade.headless
         """If True, the window is running in headless mode."""
 
@@ -429,6 +431,7 @@ class Window(pyglet.window.Window):
 
     def close(self) -> None:
         """Close the Window."""
+        self.closed = True
         super().close()
         # Make sure we don't reference the window any more
         set_window(None)
@@ -537,7 +540,10 @@ class Window(pyglet.window.Window):
             # we only need the modulus to keep time, if we didn't care
             # it could be set to zero instead.
             # ! This should maybe be fixed at 'self._draw_rate', discuss.
-            self.draw(self._accumulated_draw_time)
+
+            # In case the window close in on_update, on_fixed_update or input callbacks
+            if not self.closed:
+                self.draw(self._accumulated_draw_time)
             self._accumulated_draw_time %= self._draw_rate
 
     def _dispatch_updates(self, delta_time: float) -> None:
