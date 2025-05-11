@@ -70,7 +70,7 @@ def test_bind_callback_with_star_args():
     # WHEN
     my_obj.name = "New Name"
 
-    assert observer.call_args == (my_obj, "New Name")
+    assert observer.call_args == (my_obj, "New Name", None)
 
     # Remove reference of call_args to my_obj, otherwise it will keep the object alive
     observer.call_args = None
@@ -152,12 +152,12 @@ def test_gc_keeps_bound_methods():
 
     bind(obj, "name", observer.call)
 
-    assert len(MyObject.name.obs[obj].listeners) == 1
+    assert len(MyObject.name.obs[obj]._listeners) == 1
 
     del observer
     gc.collect()
 
-    assert len(MyObject.name.obs[obj].listeners) == 1
+    assert len(MyObject.name.obs[obj]._listeners) == 1
 
 
 def test_gc_keeps_temp_methods():
@@ -170,8 +170,8 @@ def test_gc_keeps_temp_methods():
 
     bind(obj, "name", callback)
 
-    assert len(MyObject.name.obs[obj].listeners) == 1
+    assert len(MyObject.name.obs[obj]._listeners) == 1
 
     del callback
 
-    assert len(MyObject.name.obs[obj].listeners) == 1
+    assert len(MyObject.name.obs[obj]._listeners) == 1

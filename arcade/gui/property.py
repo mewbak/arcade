@@ -1,6 +1,8 @@
+import inspect
 import sys
 import traceback
 from collections.abc import Callable
+from contextlib import suppress
 from typing import Any, Generic, TypeVar, cast
 from weakref import WeakKeyDictionary, ref
 
@@ -9,18 +11,64 @@ from typing_extensions import Self, overload, override
 P = TypeVar("P")
 
 
+NoArgListener = Callable[[], None]
+InstanceListener = Callable[[Any], None]
+InstanceValueListener = Callable[[Any, Any], None]
+InstanceNewOldListener = Callable[[Any, Any, Any], None]
+AnyListener = NoArgListener | InstanceListener | InstanceValueListener | InstanceNewOldListener
+
+
 class _Obs(Generic[P]):
     """
     Internal holder for Property value and change listeners
     """
 
-    __slots__ = ("value", "listeners")
+    __slots__ = ("value", "_listeners")
 
     def __init__(self, value: P):
         self.value = value
         # This will keep any added listener even if it is not referenced anymore
         # and would be garbage collected
-        self.listeners: set[Callable[[Any, P], Any] | Callable[[], Any]] = set()
+        self._listeners: dict[AnyListener, InstanceNewOldListener] = dict()
+
+    def add(
+        self,
+        callback: AnyListener,
+    ):
+        """Add a callback to the list of listeners"""
+        self._listeners[callback] = _Obs._normalize_callback(callback)
+
+    def remove(self, callback):
+        """Remove a callback from the list of listeners"""
+        if callback in self._listeners:
+            del self._listeners[callback]
+
+    @property
+    def listeners(self) -> list[InstanceNewOldListener]:
+        return list(self._listeners.values())
+
+    @staticmethod
+    def _normalize_callback(callback) -> InstanceNewOldListener:
+        """Normalizes the callback so every callback can be invoked with the same signature."""
+        signature = inspect.signature(callback)
+
+        with suppress(TypeError):
+            signature.bind(1, 1, 1)
+            return lambda instance, new, old: callback(instance, new, old)
+
+        with suppress(TypeError):
+            signature.bind(1, 1)
+            return lambda instance, new, old: callback(instance, new)
+
+        with suppress(TypeError):
+            signature.bind(1)
+            return lambda instance, new, old: callback(instance)
+
+        with suppress(TypeError):
+            signature.bind()
+            return lambda instance, new, old: callback()
+
+        raise TypeError("Callback is not callable")
 
 
 class Property(Generic[P]):
@@ -85,10 +133,11 @@ class Property(Generic[P]):
         """Set value for owner instance"""
         obs = self._get_obs(instance)
         if obs.value != value:
+            old = obs.value
             obs.value = value
-            self.dispatch(instance, value)
+            self.dispatch(instance, value, old)
 
-    def dispatch(self, instance, value):
+    def dispatch(self, instance, value, old_value):
         """Notifies every listener, which subscribed to the change event.
 
         Args:
@@ -99,13 +148,7 @@ class Property(Generic[P]):
         obs = self._get_obs(instance)
         for listener in obs.listeners:
             try:
-                try:
-                    # FIXME if listener() raises an error, the invalid call will be
-                    #       also shown as an exception
-                    listener(instance, value)  # type: ignore
-                except TypeError:
-                    # If the listener does not accept arguments, we call it without it
-                    listener()  # type: ignore
+                listener(instance, value, old_value)
             except Exception:
                 print(
                     f"Change listener for {instance}.{self.name} = {value} raised an exception!",
@@ -126,7 +169,7 @@ class Property(Generic[P]):
         # Instance methods are bound methods, which can not be referenced by normal `ref()`
         # if listeners would be a WeakSet, we would have to add listeners as WeakMethod
         # ourselves into `WeakSet.data`.
-        obs.listeners.add(callback)
+        obs.add(callback)
 
     def unbind(self, instance, callback):
         """Unbinds a function from the change event of the property.
@@ -136,7 +179,7 @@ class Property(Generic[P]):
             callback: The callback to unbind.
         """
         obs = self._get_obs(instance)
-        obs.listeners.remove(callback)
+        obs.remove(callback)
 
     def __set_name__(self, owner, name):
         self.name = name
