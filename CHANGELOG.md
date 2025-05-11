@@ -7,6 +7,13 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 
 - Fixed an issue causing a crash when closing the window
 - Added `Window.close` (bool) attribute indicating if the window is closed
+- GUI
+  - Property listener can now receive:
+    - no args
+    - instance
+    - instance, value
+    - instance, value, old value
+    > This is a breaking change. If you are using the listener with *args.
 
 ## Version 3.2
 
