@@ -40,6 +40,11 @@ class Observer:
         self.called = True
         self.count += 1
 
+    def __call__(self, *args, **kwargs):
+        self.call_args = args
+        self.called = True
+        self.count += 1
+
 
 def test_bind_callback():
     observer = Observer()

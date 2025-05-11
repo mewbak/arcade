@@ -2,7 +2,7 @@ import inspect
 import sys
 import traceback
 from collections.abc import Callable
-from contextlib import suppress
+from contextlib import suppress, contextmanager
 from typing import Any, Generic, TypeVar, cast
 from weakref import WeakKeyDictionary, ref
 
@@ -142,7 +142,8 @@ class Property(Generic[P]):
 
         Args:
             instance: Property instance
-            value: new value to set
+            value: new value set
+            old_value: previous value
 
         """
         obs = self._get_obs(instance)
@@ -275,45 +276,49 @@ class _ObservableDict(dict):
         self.obj = ref(instance)
         super().__init__(*args)
 
-    def dispatch(self):
-        self.prop.dispatch(self.obj(), self)
+    @contextmanager
+    def _dispatch(self):
+        """This is a context manager which will dispatch the change event
+        when the context is exited.
+        """
+        old_value = self.copy()
+        yield
+        self.prop.dispatch(self.obj(), self, old_value)
 
     @override
     def __setitem__(self, key, value):
-        dict.__setitem__(self, key, value)
-        self.dispatch()
+        with self._dispatch():
+            dict.__setitem__(self, key, value)
 
     @override
     def __delitem__(self, key):
-        dict.__delitem__(self, key)
-        self.dispatch()
+        with self._dispatch():
+            dict.__delitem__(self, key)
 
     @override
     def clear(self):
-        dict.clear(self)
-        self.dispatch()
+        with self._dispatch():
+            dict.clear(self)
 
     @override
     def pop(self, *args):
-        result = dict.pop(self, *args)
-        self.dispatch()
-        return result
+        with self._dispatch():
+            return dict.pop(self, *args)
 
     @override
     def popitem(self):
-        result = dict.popitem(self)
-        self.dispatch()
-        return result
+        with self._dispatch():
+            return dict.popitem(self)
 
     @override
     def setdefault(self, *args):
-        dict.setdefault(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            return dict.setdefault(self, *args)
 
     @override
     def update(self, *args):
-        dict.update(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            dict.update(self, *args)
 
 
 K = TypeVar("K")
@@ -352,80 +357,86 @@ class _ObservableList(list):
         self.obj = ref(instance)
         super().__init__(*args)
 
-    def dispatch(self):
-        """Dispatches the change event."""
-        self.prop.dispatch(self.obj(), self)
+    @contextmanager
+    def _dispatch(self):
+        """Dispatches the change event.
+        This is a context manager which will dispatch the change event
+        when the context is exited.
+        """
+        old_value = self.copy()
+        yield
+        self.prop.dispatch(self.obj(), self, old_value)
 
     @override
     def __setitem__(self, key, value):
-        list.__setitem__(self, key, value)
-        self.dispatch()
+        with self._dispatch():
+            list.__setitem__(self, key, value)
 
     @override
     def __delitem__(self, key):
-        list.__delitem__(self, key)
-        self.dispatch()
+        with self._dispatch():
+            list.__delitem__(self, key)
 
     @override
     def __iadd__(self, *args):
-        list.__iadd__(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            list.__iadd__(self, *args)
         return self
 
     @override
     def __imul__(self, *args):
-        list.__imul__(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            list.__imul__(self, *args)
         return self
 
     @override
     def append(self, *args):
         """Proxy for list.append() which dispatches the change event."""
-        list.append(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            list.append(self, *args)
 
     @override
     def clear(self):
         """Proxy for list.clear() which dispatches the change event."""
-        list.clear(self)
-        self.dispatch()
+        with self._dispatch():
+            list.clear(self)
 
     @override
     def remove(self, *args):
         """Proxy for list.remove() which dispatches the change event."""
-        list.remove(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            list.remove(self, *args)
 
     @override
     def insert(self, *args):
         """Proxy for list.insert() which dispatches the change event."""
-        list.insert(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            list.insert(self, *args)
 
     @override
     def pop(self, *args):
         """Proxy for list.pop() which dispatches the change"""
-        result = list.pop(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            result = list.pop(self, *args)
         return result
 
     @override
     def extend(self, *args):
         """Proxy for list.extend() which dispatches the change event."""
-        list.extend(self, *args)
-        self.dispatch()
+        with self._dispatch():
+            list.extend(self, *args)
 
     @override
     def sort(self, **kwargs):
         """Proxy for list.sort() which dispatches the change event."""
-        list.sort(self, **kwargs)
-        self.dispatch()
+        with self._dispatch():
+            list.sort(self, **kwargs)
 
     @override
     def reverse(self):
         """Proxy for list.reverse() which dispatches the change event."""
-        list.reverse(self)
-        self.dispatch()
+        with self._dispatch():
+            list.reverse(self)
 
 
 class ListProperty(Property[list[P]], Generic[P]):
