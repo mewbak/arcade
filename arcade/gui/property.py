@@ -53,12 +53,12 @@ class _Obs(Generic[P]):
         signature = inspect.signature(callback)
 
         with suppress(TypeError):
-            signature.bind(1, 1, 1)
-            return lambda instance, new, old: callback(instance, new, old)
-
-        with suppress(TypeError):
             signature.bind(1, 1)
             return lambda instance, new, old: callback(instance, new)
+
+        with suppress(TypeError):
+            signature.bind(1, 1, 1)
+            return lambda instance, new, old: callback(instance, new, old)
 
         with suppress(TypeError):
             signature.bind(1)

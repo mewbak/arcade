@@ -136,7 +136,7 @@ def test_bind_callback_with_star_args():
     # WHEN
     my_obj.name = "New Name"
 
-    assert observer.call_args == (my_obj, "New Name", None)
+    assert observer.call_args == (my_obj, "New Name")
 
     # Remove reference of call_args to my_obj, otherwise it will keep the object alive
     observer.call_args = None

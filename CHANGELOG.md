@@ -13,7 +13,7 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
     - instance
     - instance, value
     - instance, value, old value
-    > This is a breaking change. If you are using the listener with *args.
+    > Listener accepting `*args` receive `instance, value` like in previous versions.
 
 ## Version 3.2
 
