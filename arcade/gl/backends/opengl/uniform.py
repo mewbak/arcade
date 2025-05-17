@@ -4,7 +4,7 @@ from typing import Callable
 
 from pyglet import gl
 
-from .exceptions import ShaderException
+from arcade.gl.exceptions import ShaderException
 
 
 class Uniform:

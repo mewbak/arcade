@@ -6,9 +6,9 @@ from pyglet.math import Mat4
 
 
 def test_ctx(ctx):
-    if ctx.gl_api == "gl":
+    if ctx.gl_api == "opengl":
         assert ctx.gl_version >= (3, 3)
-    elif ctx.gl_api == "gles":
+    elif ctx.gl_api == "opengles":
         assert ctx.gl_version >= (3, 1)
     else:
         raise ValueError(f"Unsupported api: {ctx.gl_api}")
@@ -77,7 +77,7 @@ def test_enable_disable(ctx):
     assert ctx.is_enabled(ctx.BLEND) is False
     assert len(ctx._flags) == 2
 
-    ctx.enable_only(ctx.BLEND, ctx.CULL_FACE, ctx.DEPTH_TEST, ctx.PROGRAM_POINT_SIZE)
+    ctx.enable_only(ctx.BLEND, ctx.CULL_FACE, ctx.DEPTH_TEST)
 
 
 def test_enabled(ctx):
