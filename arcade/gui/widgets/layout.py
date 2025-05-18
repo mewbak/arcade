@@ -454,11 +454,11 @@ class UIGridLayout(UILayout):
         y: ``y`` coordinate of bottom left corner.
         width: Width of the layout.
         height: Height of the layout.
-        align_horizontal: Align children in orthogonal direction.
-            Options include ``left``, ``center``, and ``right``.
-        align_vertical: Align children in orthogonal direction. Options
-            include ``top``, ``center``, and ``bottom``.
-        children: Initial list of children. More can be added later.
+        align_horizontal: Align children in along the X axis to the
+            ``"left"``, ``"center"``, or ``"right"``.
+        align_vertical: Align children in along the Y axis to the
+            ``"top"``, ``"center"``, or ``"bottom"``.
+        children: An initial iterable of children. More can be added later.
         size_hint: A size hint for :py:class:`~arcade.gui.UILayout`, if
             the :py:class:`~arcade.gui.UIWidget` would like to grow.
         size_hint_max: Maximum width and height in pixels.
