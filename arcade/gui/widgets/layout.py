@@ -425,24 +425,29 @@ class UIBoxLayout(UILayout):
 
 
 class UIGridLayout(UILayout):
-    """Place widgets in a grid.
+    """Arranges each child widget over one or more columns and rows.
 
-    Widgets can span multiple columns and rows.
-    By default, the layout will only use the minimal required space (``size_hint = (0, 0)``).
+    The layout's ``size_hint`` requests a target size as a :py:class:`tuple`
+    of ``(x, y)`` floats as ratios relative to the layout's parent:
 
-    Widgets can provide a ``size_hint`` to request dynamic space relative to the layout size.
-    A size_hint of ``(1, 1)`` will fill the available space, while ``(0.1, 0.1)``
-    will use maximum 10% of the layouts total size.
+    * The default of ``(0, 0)`` requests the minimum possible space
+    * ``(1.0, 1.0)`` requests the maximum possible space
+    * ``(0.1, 0.1)`` requests 10% of the layout parent's total size
 
-    Children are resized based on ``size_hint``. Maximum and minimum
-    ``size_hint``s only take effect if a ``size_hint`` is given.
+    Each child widget's ``size_hint`` value will be used to:
 
-    The layouts ``size_hint_min`` is automatically
-    updated based on the minimal required space by children, after layouting.
+    * control its size within the layout
+    * automatically re-calculate the layout's ``size_hint_min``
 
-    The width of columns and height of rows are calculated based on the size hints of the children.
-    The highest size_hint_min of a child in a column or row is used. If a child has no size_hint,
-    the actual size is considered.
+    The widths of each column and height of each row is calculated are calculated
+    from the size hint values of child widgets along each. For each, the maximum
+    ``size_hint_min`` along its axis will be used. If a widget lacks ``size_hint``
+    values, its current "actual" size will be used instead.
+
+    .. note::
+
+       Maximum and minimum size hints only take effect when a ``size_hint``
+       is set.
 
     Args:
         x: ``x`` coordinate of bottom left corner.
