@@ -439,10 +439,16 @@ class UIGridLayout(UILayout):
     * control its size within the layout
     * automatically re-calculate the layout's ``size_hint_min``
 
-    The widths of each column and height of each row is calculated are calculated
-    from the size hint values of child widgets along each. For each, the maximum
-    ``size_hint_min`` along its axis will be used. If a widget lacks ``size_hint``
-    values, its current "actual" size will be used instead.
+    The width of each column and height of each row will be calculated
+    on update by reading the sizing data of each child widget. For each
+    row/column, the corresponding values along its axis will be read
+    from widgets along its axis:
+
+    * the maximum ``size_hint_min`` of its widgets
+    * the minimum ``size_hint_max`` of its widgets
+
+    If any widget lacks size hint data, its "actual" will be used instead.
+    See :py:meth:`~.do_layout` to learn more.
 
     .. note::
 
