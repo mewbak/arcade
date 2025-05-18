@@ -662,18 +662,26 @@ class UIGridLayout(UILayout):
         )
 
     def do_layout(self):
-        """Executes the layout algorithm.
-
-        Children are placed in a grid layout based on the size hints.
+        """Arrange children in the grid based on their size hints.
 
         Algorithm
         ---------
 
-        0. generate list for all rows and columns
-        1. per column, collect max of size_hint_min and max size_hint (widths)
-        2. per row, collect max of size_hint_min and max size_hint (heights)
-        3.  use box layout algorithm to distribute space
-        4.  place widgets in grid layout
+        0. Generate lists of child widgets for each row and column
+        1. For each column, calculate the following values:
+
+           * If a widget lacks size hints, substitute the "actual" width instead
+           * The :py:func:`max` of all its child ``size_hint_min[0]`` values
+           * The :py:func:`max` of all its child ``size_hint[0]`` values
+
+        2. For each row, calculate the following values:
+
+           * If a widget lacks size hints, substitute the "actual" height instead
+           * The :py:func:`max` of all its child ``size_hint_min[1]`` values
+           * The :py:func:`max` of all its child ``size_hint[1]`` values
+
+        3.  Use box layout algorithm to allocate on-screen space
+        4.  Re-size and place the widgets to match the calculated grid layout
 
         """
 
