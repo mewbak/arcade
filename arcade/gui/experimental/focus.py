@@ -87,7 +87,11 @@ class UIFocusMixin(UIWidget):
                 self.set_focus()
                 return EVENT_HANDLED
 
-        if isinstance(event, UIKeyPressEvent):
+        if self.focused_widget is None:
+            # no focused widget, ignore events
+            return EVENT_UNHANDLED
+
+        elif isinstance(event, UIKeyPressEvent):
             if event.symbol == arcade.key.TAB:
                 if event.modifiers & arcade.key.MOD_SHIFT:
                     self.focus_previous()
