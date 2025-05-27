@@ -126,8 +126,8 @@ class UILabel(UIWidget):
         self._strong_background = True
 
         if adaptive_multiline:
-            # +1 is required to prevent line wrap
-            width = self._label.content_width + 1
+            # +1 is required to prevent line wrap, +1 is required to prevent issues with kerning
+            width = self._label.content_width + 2
 
         super().__init__(
             x=x,
@@ -242,7 +242,8 @@ class UILabel(UIWidget):
 
     def _update_size_hint_min(self):
         """Update the minimum size hint based on the label content size."""
-        min_width = self._label.content_width + 1  # +1 required to prevent line wrap
+        # +1 is required to prevent line wrap, +1 is required to prevent issues with kerning
+        min_width = self._label.content_width + 2
         min_width += self._padding_left + self._padding_right + 2 * self._border_width
 
         min_height = self._label.content_height
