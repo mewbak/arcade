@@ -7,6 +7,8 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 
 - Fixed an issue causing a crash when closing the window
 - Added `Window.close` (bool) attribute indicating if the window is closed
+- GUI
+  - Fix `UILabel` with enabled multiline sometimes cut off text
 
 ## Version 3.2
 
