@@ -3,6 +3,7 @@ Arcade's version of the OpenGL Context.
 Contains pre-loaded programs
 """
 
+from array import array
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any
@@ -99,6 +100,20 @@ class ArcadeContext(Context):
         self.sprite_list_program_cull["sprite_texture"] = 0
         self.sprite_list_program_cull["uv_texture"] = 1
 
+        self.sprite_list_program_no_geo = self.load_program(
+            vertex_shader=":system:shaders/sprites/sprite_list_simple_vs.glsl",
+            fragment_shader=":system:shaders/sprites/sprite_list_simple_fs.glsl",
+        )
+        self.sprite_list_program_no_geo["sprite_texture"] = 0
+        self.sprite_list_program_no_geo["uv_texture"] = 1
+        # Per-instance data
+        self.sprite_list_program_no_geo["pos_data"] = 2
+        self.sprite_list_program_no_geo["size_data"] = 3
+        self.sprite_list_program_no_geo["color_data"] = 4
+        self.sprite_list_program_no_geo["texture_id_data"] = 5
+        self.sprite_list_program_no_geo["index_data"] = 6
+
+        # Geo shader single sprite program
         self.sprite_program_single = self.load_program(
             vertex_shader=":system:shaders/sprites/sprite_single_vs.glsl",
             geometry_shader=":system:shaders/sprites/sprite_list_geometry_no_cull_geo.glsl",
@@ -107,6 +122,34 @@ class ArcadeContext(Context):
         self.sprite_program_single["sprite_texture"] = 0
         self.sprite_program_single["uv_texture"] = 1
         self.sprite_program_single["spritelist_color"] = 1.0, 1.0, 1.0, 1.0
+        # Non-geometry shader single sprite program
+        self.sprite_program_single_simple = self.load_program(
+            vertex_shader=":system:shaders/sprites/sprite_single_simple_vs.glsl",
+            fragment_shader=":system:shaders/sprites/sprite_list_simple_fs.glsl",
+        )
+        self.sprite_program_single_simple["sprite_texture"] = 0
+        self.sprite_program_single_simple["uv_texture"] = 1
+        self.sprite_program_single_simple["spritelist_color"] = 1.0, 1.0, 1.0, 1.0
+
+        # fmt: off
+        self.spritelist_geometry_simple = self.geometry(
+            [
+                BufferDescription(
+                    self.buffer(
+                        data=array("f", [
+                            -0.5, +0.5,  # Upper left
+                            -0.5, -0.5,  # lower left
+                            +0.5, +0.5,  # upper right
+                            +0.5, -0.5,  # lower right
+                        ])
+                    ),
+                    "2f",
+                    ["in_pos"]
+                ),
+            ],
+            mode=self.TRIANGLE_STRIP,
+        )
+        # fmt: on
 
         # Shapes
         self.shape_line_program: Program = self.load_program(
@@ -144,11 +187,22 @@ class ArcadeContext(Context):
         self.atlas_resize_program["texcoords_old"] = 2
         self.atlas_resize_program["texcoords_new"] = 3
 
+        # NOTE: These should not be created when WebGL is used
         # SpriteList collision resources
+        # Buffer version of the collision detection program.
         self.collision_detection_program = self.load_program(
             vertex_shader=":system:shaders/collision/col_trans_vs.glsl",
             geometry_shader=":system:shaders/collision/col_trans_gs.glsl",
         )
+        # Texture version of the collision detection program.
+        self.collision_detection_program_simple = self.load_program(
+            vertex_shader=":system:shaders/collision/col_tex_trans_vs.glsl",
+            geometry_shader=":system:shaders/collision/col_tex_trans_gs.glsl",
+        )
+        self.collision_detection_program_simple["pos_angle_data"] = 0
+        self.collision_detection_program_simple["size_data"] = 1
+        self.collision_detection_program_simple["index_data"] = 2
+
         self.collision_buffer = self.buffer(reserve=1024 * 4)
         self.collision_query = self.query(samples=False, time=False, primitives=True)
 
