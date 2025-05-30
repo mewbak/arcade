@@ -592,7 +592,7 @@ class UIWidget(EventDispatcher, ABC):
         return Vec2(self.width, self.height)
 
     @size.setter
-    def size(self, value):
+    def size(self, value: Tuple[float, float] | Vec2):
         width, height = value
         if width <= 0 or height <= 0:
             raise ValueError("Width and height must be positive")
