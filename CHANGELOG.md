@@ -9,6 +9,11 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 - Added `Window.close` (bool) attribute indicating if the window is closed
 - GUI
   - Fix `UILabel` with enabled multiline sometimes cut off text
+  - Improved `UIWidget` usability for resizing and positioning:
+    - Added property setters for `width`, `height`, and `size` that ensure positive values
+    - Added property setters for `center_x` and `center_y`
+    - Added property setters for `left`, `right`, `top`, and `bottom`
+    - Users can now set widget position and size more intuitively without needing to access the `rect` property
 
 ## Version 3.2
 

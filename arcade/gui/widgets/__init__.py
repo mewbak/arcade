@@ -361,20 +361,36 @@ class UIWidget(EventDispatcher, ABC):
         """Left coordinate of the widget"""
         return self.rect.left
 
+    @left.setter
+    def left(self, value: float):
+        self.rect = LBWH(value, self.bottom, self.width, self.height)
+
     @property
     def right(self) -> float:
         """Right coordinate of the widget"""
         return self.rect.right
+
+    @right.setter
+    def right(self, value: float):
+        self.rect = LBWH(value - self.width, self.bottom, self.width, self.height)
 
     @property
     def bottom(self) -> float:
         """Bottom coordinate of the widget"""
         return self.rect.bottom
 
+    @bottom.setter
+    def bottom(self, value: float):
+        self.rect = LBWH(self.left, value, self.width, self.height)
+
     @property
     def top(self) -> float:
         """Top coordinate of the widget"""
         return self.rect.top
+
+    @top.setter
+    def top(self, value: float):
+        self.rect = LBWH(self.left, value - self.height, self.width, self.height)
 
     @property
     def position(self) -> Vec2:
@@ -395,10 +411,18 @@ class UIWidget(EventDispatcher, ABC):
         """Center x coordinate"""
         return self.rect.x
 
+    @center_x.setter
+    def center_x(self, value: float):
+        self.rect = self.rect.align_center_x(value)
+
     @property
     def center_y(self) -> float:
         """Center y coordinate"""
         return self.rect.y
+
+    @center_y.setter
+    def center_y(self, value: float):
+        self.rect = self.rect.align_center_y(value)
 
     @property
     def padding(self):
@@ -545,15 +569,34 @@ class UIWidget(EventDispatcher, ABC):
         """Width of the widget."""
         return self.rect.width
 
+    @width.setter
+    def width(self, value: float):
+        if value <= 0:
+            raise ValueError("Width must be positive")
+        self.rect = LBWH(self.left, self.bottom, value, self.height)
+
     @property
     def height(self) -> float:
         """Height of the widget."""
         return self.rect.height
 
+    @height.setter
+    def height(self, value: float):
+        if value <= 0:
+            raise ValueError("Height must be positive")
+        self.rect = LBWH(self.left, self.bottom, self.width, value)
+
     @property
     def size(self) -> Vec2:
         """Size of the widget."""
         return Vec2(self.width, self.height)
+
+    @size.setter
+    def size(self, value: tuple[float, float] | Vec2):
+        width, height = value
+        if width <= 0 or height <= 0:
+            raise ValueError("Width and height must be positive")
+        self.rect = LBWH(self.left, self.bottom, width, height)
 
     def center_on_screen(self: W) -> W:
         """Places this widget in the center of the current window.
