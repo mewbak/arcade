@@ -145,15 +145,24 @@ def run(args: str | list[str], cd: PathLike | None = None) -> None:
     """
     cmd = " ".join(args)
     print(">> Running command:", cmd)
-    start_time = time.time()
+    start_time = time.perf_counter()
     if cd is not None:
         with cd_context(_resolve(cd, strict=True)):
             result = subprocess.run(args)
     else:
         result = subprocess.run(args)
-    elapsed_time = time.time() - start_time
-    minutes, seconds = divmod(elapsed_time, 60)
-    print(f">> Command finished ({int(minutes)}m {int(seconds)}s): {cmd} \n")
+        
+    elapsed_time = time.perf_counter() - start_time
+    h, rem = divmod(elapsed_time, 3600)
+    m, s = divmod(rem, 60)
+   
+    time_str = " ".join(part for part in [
+        f"{int(h)}h" if h >= 1 else "",
+        f"{int(m)}m" if m >= 1 or h >= 1 else "",
+        f"{int(s)}s"
+    ] if part)
+
+    print(f">> Command finished ({time_str}): {cmd} \n")
 
     # TODO: Should we exit here? Or continue to let other commands run also?
     if result.returncode != 0:
