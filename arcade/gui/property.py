@@ -2,7 +2,7 @@ import inspect
 import sys
 import traceback
 from collections.abc import Callable
-from contextlib import suppress, contextmanager
+from contextlib import contextmanager, suppress
 from typing import Any, Generic, TypeVar, cast
 from weakref import WeakKeyDictionary, ref
 
