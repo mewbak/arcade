@@ -11,7 +11,7 @@ def test_create(ctx, common):
     assert atlas.width == 100
     assert atlas.height == 200
     assert atlas.size == (100, 200)
-    assert atlas.border == 1
+    assert atlas.border == 2
     assert atlas.auto_resize is True
     assert isinstance(atlas.max_size, tuple)
     assert atlas.max_size > (0, 0)
@@ -120,9 +120,9 @@ def test_update_texture_image(ctx):
     atlas.update_texture_image(tex_3)
     # Test pixels one pixel in the middle of each texture to verify
     # the images was replaced with colored textures
-    assert b'\xff\x00\x00\xff' == atlas.fbo.read(viewport=(32, 32, 1, 1), components=4)
-    assert b'\x00\xff\x00\xff' == atlas.fbo.read(viewport=(96, 32, 1, 1), components=4)
-    assert b'\x00\x00\xff\xff' == atlas.fbo.read(viewport=(160, 32, 1, 1), components=4)
+    assert b"\xff\x00\x00\xff" == atlas.fbo.read(viewport=(32, 32, 1, 1), components=4)
+    assert b"\x00\xff\x00\xff" == atlas.fbo.read(viewport=(96, 32, 1, 1), components=4)
+    assert b"\x00\x00\xff\xff" == atlas.fbo.read(viewport=(160, 32, 1, 1), components=4)
 
 
 def test_uv_buffers_after_change(ctx):

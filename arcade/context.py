@@ -3,6 +3,7 @@ Arcade's version of the OpenGL Context.
 Contains pre-loaded programs
 """
 
+from array import array
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any
@@ -21,7 +22,6 @@ from arcade.gl.compute_shader import ComputeShader
 from arcade.gl.framebuffer import Framebuffer
 from arcade.gl.program import Program
 from arcade.gl.texture import Texture2D
-from arcade.gl.types import PyGLenum
 from arcade.gl.vertex_array import Geometry
 from arcade.texture_atlas import DefaultTextureAtlas, TextureAtlasBase
 
@@ -100,6 +100,20 @@ class ArcadeContext(Context):
         self.sprite_list_program_cull["sprite_texture"] = 0
         self.sprite_list_program_cull["uv_texture"] = 1
 
+        self.sprite_list_program_no_geo = self.load_program(
+            vertex_shader=":system:shaders/sprites/sprite_list_simple_vs.glsl",
+            fragment_shader=":system:shaders/sprites/sprite_list_simple_fs.glsl",
+        )
+        self.sprite_list_program_no_geo["sprite_texture"] = 0
+        self.sprite_list_program_no_geo["uv_texture"] = 1
+        # Per-instance data
+        self.sprite_list_program_no_geo["pos_data"] = 2
+        self.sprite_list_program_no_geo["size_data"] = 3
+        self.sprite_list_program_no_geo["color_data"] = 4
+        self.sprite_list_program_no_geo["texture_id_data"] = 5
+        self.sprite_list_program_no_geo["index_data"] = 6
+
+        # Geo shader single sprite program
         self.sprite_program_single = self.load_program(
             vertex_shader=":system:shaders/sprites/sprite_single_vs.glsl",
             geometry_shader=":system:shaders/sprites/sprite_list_geometry_no_cull_geo.glsl",
@@ -108,44 +122,84 @@ class ArcadeContext(Context):
         self.sprite_program_single["sprite_texture"] = 0
         self.sprite_program_single["uv_texture"] = 1
         self.sprite_program_single["spritelist_color"] = 1.0, 1.0, 1.0, 1.0
+        # Non-geometry shader single sprite program
+        self.sprite_program_single_simple = self.load_program(
+            vertex_shader=":system:shaders/sprites/sprite_single_simple_vs.glsl",
+            fragment_shader=":system:shaders/sprites/sprite_list_simple_fs.glsl",
+        )
+        self.sprite_program_single_simple["sprite_texture"] = 0
+        self.sprite_program_single_simple["uv_texture"] = 1
+        self.sprite_program_single_simple["spritelist_color"] = 1.0, 1.0, 1.0, 1.0
+
+        # fmt: off
+        self.spritelist_geometry_simple = self.geometry(
+            [
+                BufferDescription(
+                    self.buffer(
+                        data=array("f", [
+                            -0.5, +0.5,  # Upper left
+                            -0.5, -0.5,  # lower left
+                            +0.5, +0.5,  # upper right
+                            +0.5, -0.5,  # lower right
+                        ])
+                    ),
+                    "2f",
+                    ["in_pos"]
+                ),
+            ],
+            mode=self.TRIANGLE_STRIP,
+        )
+        # fmt: on
 
         # Shapes
         self.shape_line_program: Program = self.load_program(
             vertex_shader=":system:shaders/shapes/line/unbuffered_vs.glsl",
             fragment_shader=":system:shaders/shapes/line/unbuffered_fs.glsl",
-            geometry_shader=":system:shaders/shapes/line/unbuffered_geo.glsl",
         )
         self.shape_ellipse_filled_unbuffered_program: Program = self.load_program(
             vertex_shader=":system:shaders/shapes/ellipse/filled_unbuffered_vs.glsl",
             fragment_shader=":system:shaders/shapes/ellipse/filled_unbuffered_fs.glsl",
-            geometry_shader=":system:shaders/shapes/ellipse/filled_unbuffered_geo.glsl",
         )
         self.shape_ellipse_outline_unbuffered_program: Program = self.load_program(
             vertex_shader=":system:shaders/shapes/ellipse/outline_unbuffered_vs.glsl",
             fragment_shader=":system:shaders/shapes/ellipse/outline_unbuffered_fs.glsl",
-            geometry_shader=":system:shaders/shapes/ellipse/outline_unbuffered_geo.glsl",
         )
         self.shape_rectangle_filled_unbuffered_program = self.load_program(
             vertex_shader=":system:shaders/shapes/rectangle/filled_unbuffered_vs.glsl",
             fragment_shader=":system:shaders/shapes/rectangle/filled_unbuffered_fs.glsl",
-            geometry_shader=":system:shaders/shapes/rectangle/filled_unbuffered_geo.glsl",
         )
+
         # Atlas shaders
         self.atlas_resize_program: Program = self.load_program(
-            vertex_shader=":system:shaders/atlas/resize_vs.glsl",
-            geometry_shader=":system:shaders/atlas/resize_gs.glsl",
-            fragment_shader=":system:shaders/atlas/resize_fs.glsl",
+            # NOTE: This is the geo shader version of the atlas resize program.
+            # vertex_shader=":system:shaders/atlas/resize_vs.glsl",
+            # geometry_shader=":system:shaders/atlas/resize_gs.glsl",
+            # fragment_shader=":system:shaders/atlas/resize_fs.glsl",
+            # Vertex and fragment shader version
+            vertex_shader=":system:shaders/atlas/resize_simple_vs.glsl",
+            fragment_shader=":system:shaders/atlas/resize_simple_fs.glsl",
         )
         self.atlas_resize_program["atlas_old"] = 0  # Configure texture channels
         self.atlas_resize_program["atlas_new"] = 1
         self.atlas_resize_program["texcoords_old"] = 2
         self.atlas_resize_program["texcoords_new"] = 3
 
+        # NOTE: These should not be created when WebGL is used
         # SpriteList collision resources
+        # Buffer version of the collision detection program.
         self.collision_detection_program = self.load_program(
             vertex_shader=":system:shaders/collision/col_trans_vs.glsl",
             geometry_shader=":system:shaders/collision/col_trans_gs.glsl",
         )
+        # Texture version of the collision detection program.
+        self.collision_detection_program_simple = self.load_program(
+            vertex_shader=":system:shaders/collision/col_tex_trans_vs.glsl",
+            geometry_shader=":system:shaders/collision/col_tex_trans_gs.glsl",
+        )
+        self.collision_detection_program_simple["pos_angle_data"] = 0
+        self.collision_detection_program_simple["size_data"] = 1
+        self.collision_detection_program_simple["index_data"] = 2
+
         self.collision_buffer = self.buffer(reserve=1024 * 4)
         self.collision_query = self.query(samples=False, time=False, primitives=True)
 
@@ -173,32 +227,71 @@ class ArcadeContext(Context):
             ]
         )
         # Shape line(s)
-        # Reserve space for 1000 lines (2f pos, 4f color)
-        # TODO: Different version for buffered and unbuffered
-        # TODO: Make round-robin buffers
         self.shape_line_buffer_pos = self.buffer(reserve=8 * 10)
-        # self.shape_line_buffer_color = self.buffer(reserve=4 * 10)
         self.shape_line_geometry = self.geometry(
             [
-                BufferDescription(self.shape_line_buffer_pos, "2f", ["in_vert"]),
-                # BufferDescription(self.shape_line_buffer_color, '4f1', ['in_color'])
-            ]
+                # Instanced quad (triangle strip)
+                BufferDescription(
+                    self.buffer(
+                        data=array(
+                            "f",
+                            [
+                                0.0,  # 4 dummy vertices
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                            ],
+                        )
+                    ),
+                    "2f",
+                    ["in_vert"],
+                ),
+                BufferDescription(
+                    self.shape_line_buffer_pos, "4f", ["in_instance_pos"], instanced=True
+                ),
+            ],
+            mode=self.TRIANGLE_STRIP,
         )
-        # ellipse/circle filled
-        self.shape_ellipse_unbuffered_buffer = self.buffer(reserve=8)
-        self.shape_ellipse_unbuffered_geometry: Geometry = self.geometry(
-            [BufferDescription(self.shape_ellipse_unbuffered_buffer, "2f", ["in_vert"])]
-        )
-        # ellipse/circle outline
-        self.shape_ellipse_outline_unbuffered_buffer = self.buffer(reserve=8)
-        self.shape_ellipse_outline_unbuffered_geometry: Geometry = self.geometry(
-            [BufferDescription(self.shape_ellipse_outline_unbuffered_buffer, "2f", ["in_vert"])]
-        )
+        # ellipse/circle filled. Empty geometry. We generate it on the fly in the vertex shader.
+        self.shape_ellipse_unbuffered_geometry: Geometry = self.geometry()
+        # ellipse/circle outline. Empty geometry. We generate it on the fly in the vertex shader.
+        self.shape_ellipse_outline_unbuffered_geometry: Geometry = self.geometry()
         # rectangle filled
         self.shape_rectangle_filled_unbuffered_buffer = self.buffer(reserve=8)
+        # fmt: off
         self.shape_rectangle_filled_unbuffered_geometry: Geometry = self.geometry(
-            [BufferDescription(self.shape_rectangle_filled_unbuffered_buffer, "2f", ["in_vert"])]
+            [
+                # Instanced quad (triangle strip)
+                BufferDescription(
+                    self.buffer(
+                        data=array(
+                            "f",
+                            [
+                                -0.5, +0.5,  # Upper left
+                                -0.5, -0.5,  # lower left
+                                +0.5, +0.5,  # upper right
+                                +0.5, -0.5,  # lower right
+                            ],
+                        )
+                    ),
+                    "2f",
+                    ["in_vert"],
+                ),
+                # Per instance data
+                BufferDescription(
+                    self.shape_rectangle_filled_unbuffered_buffer,
+                    "2f",
+                    ["in_instance_pos"],
+                    instanced=True
+                ),
+            ],
+            mode=self.TRIANGLE_STRIP,
         )
+        # fmt: on
         self.geometry_empty: Geometry = self.geometry()
 
         self._atlas: TextureAtlasBase | None = None
@@ -451,9 +544,9 @@ class ArcadeContext(Context):
         path: str | Path,
         *,
         flip: bool = True,
-        wrap_x: PyGLenum | None = None,
-        wrap_y: PyGLenum | None = None,
-        filter: tuple[PyGLenum, PyGLenum] | None = None,
+        wrap_x=None,
+        wrap_y=None,
+        filter=None,
         build_mipmaps: bool = False,
         internal_format: int | None = None,
         immutable: bool = False,

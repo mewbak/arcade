@@ -17,6 +17,7 @@ import arcade
 from arcade.clock import GLOBAL_CLOCK, GLOBAL_FIXED_CLOCK
 from arcade import Rect, LBWH
 from arcade import gl
+
 # from arcade.texture import default_texture_cache
 # NOTE: Load liberation fonts in unit tests
 arcade.resources.load_liberation_fonts()
@@ -26,10 +27,33 @@ PROJECT_ROOT = (Path(__file__).parent.parent).resolve()
 FIXTURE_ROOT = PROJECT_ROOT / "tests" / "fixtures"
 arcade.resources.add_resource_handle("fixtures", FIXTURE_ROOT)
 REAL_WINDOW_CLASS = arcade.Window
+GL_BACKEND = "opengl"
 WINDOW = None
 OFFSCREEN = None
 
+POSSIBLE_BACKENDS = ["backendopengl", "backendwebgl"]
+
 arcade.resources.load_kenney_fonts()
+
+
+def pytest_addoption(parser):
+    parser.addoption("--gl-backend", default="opengl")
+
+
+def pytest_configure(config):
+    global GL_BACKEND
+    GL_BACKEND = config.option.gl_backend
+
+
+def pytest_collection_modifyitems(config, items):
+    desired_backend = "backend" + GL_BACKEND
+    for item in items:
+        for backend in POSSIBLE_BACKENDS:
+            if backend in item.keywords:
+                if backend != desired_backend:
+                    item.add_marker(
+                        pytest.mark.skip(f"Skipping GL backend specific test for {backend}")
+                    )
 
 
 def make_window_caption(request=None, prefix="Testing", sep=" - ") -> str:
@@ -51,7 +75,12 @@ def create_window(width=1280, height=720, caption="Testing", **kwargs):
     global WINDOW
     if not WINDOW:
         WINDOW = REAL_WINDOW_CLASS(
-            width=width, height=height, title=caption, vsync=False, antialiasing=False
+            width=width,
+            height=height,
+            title=caption,
+            vsync=False,
+            antialiasing=False,
+            gl_api=GL_BACKEND,
         )
         WINDOW.set_vsync(False)
         # This value is being monkey-patched into the Window class so that tests can identify if we are using
@@ -318,6 +347,10 @@ class WindowProxy:
 
     def set_vsync(self, vsync):
         self.window.set_vsync(vsync)
+
+    @staticmethod
+    def register_event_type(*args, **kwargs):
+        pass
 
     @property
     def default_camera(self):

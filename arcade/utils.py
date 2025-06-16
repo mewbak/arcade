@@ -21,6 +21,7 @@ __all__ = [
     "is_nonstr_iterable",
     "is_str_or_noniterable",
     "grow_sequence",
+    "is_pyodide",
     "is_raspberry_pi",
     "get_raspberry_pi_info",
 ]
@@ -252,6 +253,10 @@ def copy_dunders_unimplemented(decorated_type: _TType) -> _TType:
     decorated_type.__deepcopy__ = __deepcopy__  # type: ignore
 
     return decorated_type
+
+
+def is_pyodide() -> bool:
+    return False
 
 
 def is_raspberry_pi() -> bool:

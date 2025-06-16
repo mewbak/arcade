@@ -22,8 +22,9 @@ import arcade
 from arcade.clock import GLOBAL_CLOCK, GLOBAL_FIXED_CLOCK, _setup_clock, _setup_fixed_clock
 from arcade.color import BLACK
 from arcade.context import ArcadeContext
+from arcade.gl.provider import get_arcade_context, set_provider
 from arcade.types import LBWH, Color, Rect, RGBANormalized, RGBOrA255
-from arcade.utils import is_raspberry_pi
+from arcade.utils import is_pyodide, is_raspberry_pi
 from arcade.window_commands import get_display_size, set_window
 
 if TYPE_CHECKING:
@@ -157,7 +158,7 @@ class Window(pyglet.window.Window):
         center_window: bool = False,
         samples: int = 4,
         enable_polling: bool = True,
-        gl_api: str = "gl",
+        gl_api: str = "opengl",
         draw_rate: float = 1 / 60,
         fixed_rate: float = 1.0 / 60.0,
         fixed_frame_cap: int | None = None,
@@ -167,10 +168,17 @@ class Window(pyglet.window.Window):
         if os.environ.get("REPL_ID"):
             antialiasing = False
 
+        desired_gl_provider = "opengl"
+        if is_pyodide():
+            gl_api = "webgl"
+
+        if gl_api == "webgl":
+            desired_gl_provider = "webgl"
+
         # Detect Raspberry Pi and switch to OpenGL ES 3.1
         if is_raspberry_pi():
             gl_version = 3, 1
-            gl_api = "gles"
+            gl_api = "opengles"
 
         self.closed = False
         """Indicates if the window was closed"""
@@ -184,7 +192,7 @@ class Window(pyglet.window.Window):
                 config = gl.Config(
                     major_version=gl_version[0],
                     minor_version=gl_version[1],
-                    opengl_api=gl_api,  # type: ignore  # pending: upstream fix
+                    opengl_api=gl_api.replace("open", ""),  # type: ignore  # pending: upstream fix
                     double_buffer=True,
                     sample_buffers=1,
                     samples=samples,
@@ -208,7 +216,7 @@ class Window(pyglet.window.Window):
             config = gl.Config(
                 major_version=gl_version[0],
                 minor_version=gl_version[1],
-                opengl_api=gl_api,  # type: ignore  # pending: upstream fix
+                opengl_api=gl_api.replace("open", ""),  # type: ignore  # pending: upstream fix
                 double_buffer=True,
                 depth_size=24,
                 stencil_size=8,
@@ -277,7 +285,9 @@ class Window(pyglet.window.Window):
 
         self.push_handlers(on_resize=self._on_resize)
 
-        self._ctx: ArcadeContext = ArcadeContext(self, gc_mode=gc_mode, gl_api=gl_api)
+        set_provider(desired_gl_provider)
+        self._ctx: ArcadeContext = get_arcade_context(self, gc_mode=gc_mode, gl_api=gl_api)
+        # self._ctx: ArcadeContext = ArcadeContext(self, gc_mode=gc_mode, gl_api=gl_api)
         self._background_color: Color = BLACK
 
         self._current_view: View | None = None
