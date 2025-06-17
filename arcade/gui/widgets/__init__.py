@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from collections.abc import Iterable
 from enum import IntEnum
+from types import EllipsisType
 from typing import TYPE_CHECKING, NamedTuple, TypeVar
 
 from pyglet.event import EVENT_HANDLED, EVENT_UNHANDLED, EventDispatcher
@@ -509,8 +510,8 @@ class UIWidget(EventDispatcher, ABC):
     def with_background(
         self,
         *,
-        color: None | Color = ...,  # type: ignore
-        texture: None | Texture | NinePatchTexture = ...,  # type: ignore
+        color: Color | EllipsisType | None = ...,
+        texture: Texture | NinePatchTexture | EllipsisType | None = ...,
     ) -> Self:
         """Set widgets background.
 

@@ -26,6 +26,13 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
     - Added property setters for `center_x` and `center_y`
     - Added property setters for `left`, `right`, `top`, and `bottom`
     - Users can now set widget position and size more intuitively without needing to access the `rect` property
+  - Property listener can now receive:
+    - no args
+    - instance
+    - instance, value
+    - instance, value, old value
+    > Listener accepting `*args` receive `instance, value` like in previous versions.
+
 - Rendering:
   - The `arcade.gl` package was restructured to be more modular in preparation for
     other backends such as WebGL and WebGPU

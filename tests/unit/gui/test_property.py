@@ -10,19 +10,40 @@ class MyObject:
 class Observer:
     call_args = None
     called = False
+    count = 0
 
     def call(self):
         self.call_args = tuple()
         self.called = True
+        self.count += 1
 
-    def call_with_args(self, instance, value):
+    def call_with_instance(self, instance):
+        """Match expected signature of 2 parameters"""
+        self.call_args = (instance,)
+        self.called = True
+        self.count += 1
+
+    def call_with_instance_value(self, instance, value):
         """Match expected signature of 2 parameters"""
         self.call_args = (instance, value)
         self.called = True
+        self.count += 1
 
-    def __call__(self, *args):
+    def call_with_instance_value_old(self, instance, value, old):
+        """Match expected signature of 2 parameters"""
+        self.call_args = (instance, value, old)
+        self.called = True
+        self.count += 1
+
+    def call_with_args(self, *args):
         self.call_args = args
         self.called = True
+        self.count += 1
+
+    def __call__(self, *args, **kwargs):
+        self.call_args = args
+        self.called = True
+        self.count += 1
 
 
 def test_bind_callback():
@@ -39,16 +60,44 @@ def test_bind_callback():
     assert observer.call_args == tuple()
 
 
-def test_bind_callback_with_args():
-    """
-    A bound callback can have 0 or 2 arguments.
-    0 arguments are used for simple callbacks, like `log_change`.
-    2 arguments are used for callbacks that need to know the instance and the new value.
-    """
+def test_bind_callback_only_once():
     observer = Observer()
 
     my_obj = MyObject()
-    bind(my_obj, "name", observer.call_with_args)
+    bind(my_obj, "name", observer.call)
+    bind(my_obj, "name", observer.call)
+
+    assert not observer.call_args
+
+    # WHEN
+    my_obj.name = "New Name"
+
+    assert observer.call_args == tuple()
+    assert observer.count == 1
+
+
+def test_bind_callback_accepts_instance():
+    observer = Observer()
+
+    my_obj = MyObject()
+    bind(my_obj, "name", observer.call_with_instance)
+
+    assert not observer.call_args
+
+    # WHEN
+    my_obj.name = "New Name"
+
+    assert observer.call_args == (my_obj,)
+
+    # Remove reference of call_args to my_obj, otherwise it will keep the object alive
+    observer.call_args = None
+
+
+def test_bind_callback_accepts_instance_value():
+    observer = Observer()
+
+    my_obj = MyObject()
+    bind(my_obj, "name", observer.call_with_instance_value)
 
     assert not observer.call_args
 
@@ -61,11 +110,28 @@ def test_bind_callback_with_args():
     observer.call_args = None
 
 
+def test_bind_callback_accepts_instance_value_old():
+    observer = Observer()
+
+    my_obj = MyObject()
+    bind(my_obj, "name", observer.call_with_instance_value_old)
+
+    assert not observer.call_args
+
+    # WHEN
+    my_obj.name = "New Name"
+
+    assert observer.call_args == (my_obj, "New Name", None)
+
+    # Remove reference of call_args to my_obj, otherwise it will keep the object alive
+    observer.call_args = None
+
+
 def test_bind_callback_with_star_args():
     observer = Observer()
 
     my_obj = MyObject()
-    bind(my_obj, "name", observer)
+    bind(my_obj, "name", observer.call_with_args)
 
     # WHEN
     my_obj.name = "New Name"
@@ -152,12 +218,12 @@ def test_gc_keeps_bound_methods():
 
     bind(obj, "name", observer.call)
 
-    assert len(MyObject.name.obs[obj].listeners) == 1
+    assert len(MyObject.name.obs[obj]._listeners) == 1
 
     del observer
     gc.collect()
 
-    assert len(MyObject.name.obs[obj].listeners) == 1
+    assert len(MyObject.name.obs[obj]._listeners) == 1
 
 
 def test_gc_keeps_temp_methods():
@@ -170,8 +236,8 @@ def test_gc_keeps_temp_methods():
 
     bind(obj, "name", callback)
 
-    assert len(MyObject.name.obs[obj].listeners) == 1
+    assert len(MyObject.name.obs[obj]._listeners) == 1
 
     del callback
 
-    assert len(MyObject.name.obs[obj].listeners) == 1
+    assert len(MyObject.name.obs[obj]._listeners) == 1
