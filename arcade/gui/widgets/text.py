@@ -580,7 +580,8 @@ class UIInputText(UIStyledWidget[UIInputTextStyle], UIInteractiveWidget):
         self._apply_style()
 
     def _on_active_changed(self):
-        """Handle the active state change of the input text field to care about loosing active state."""
+        """Handle the active state change of the input
+        text field to care about loosing active state."""
         if not self._active:
             self.deactivate()
 

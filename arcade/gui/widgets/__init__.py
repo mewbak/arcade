@@ -173,16 +173,12 @@ class UIWidget(EventDispatcher, ABC):
     # maybe the two systems should be merged?
     def _grap_active(self):
         """Sets itself as the single active widget in the UIManager."""
-        from arcade.gui.ui_manager import UIManager
-
         ui_manager: UIManager | None = self.get_ui_manager()
         if ui_manager:
             ui_manager._set_active_widget(self)
 
     def _release_active(self):
         """Make this widget inactive in the UIManager."""
-        from arcade.gui.ui_manager import UIManager
-
         if not self._active:
             return
 
@@ -740,7 +736,7 @@ class UIInteractiveWidget(UIWidget):
                             modifiers=event.modifiers,
                         ),
                     )
-                    return EVENT_HANDLED # TODO should we return the result from on_click?
+                    return EVENT_HANDLED  # TODO should we return the result from on_click?
 
         return EVENT_UNHANDLED
 
