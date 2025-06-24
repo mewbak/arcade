@@ -1,5 +1,7 @@
 import gc
 
+import pytest
+
 from arcade.gui.property import Property, bind, unbind
 
 
@@ -241,3 +243,15 @@ def test_gc_keeps_temp_methods():
     del callback
 
     assert len(MyObject.name.obs[obj]._listeners) == 1
+
+
+def test_bind_raise_if_attr_not_a_ui_property():
+    class BadObject:
+        @property
+        def name(self):
+            return
+
+    obj = BadObject()
+
+    with pytest.raises(ValueError):
+        bind(obj, "name", lambda *args: None)

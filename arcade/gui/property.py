@@ -230,8 +230,10 @@ def bind(instance, property: str, callback):
     """
     t = type(instance)
     prop = getattr(t, property)
-    if isinstance(prop, Property):
-        prop.bind(instance, callback)
+    if not isinstance(prop, Property):
+        raise ValueError(f"{t.__name__}.{property} is not an arcade.gui.Property")
+
+    prop.bind(instance, callback)
 
 
 def unbind(instance, property: str, callback):

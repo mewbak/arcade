@@ -94,6 +94,8 @@ class UIWidget(EventDispatcher, ABC):
     This is not part of the public API and subject to change.
     UILabel have a strong background if set.
     """
+    _active = Property[bool](False)
+    """If True, the widget is active"""
 
     def __init__(
         self,
@@ -166,6 +168,23 @@ class UIWidget(EventDispatcher, ABC):
             self._children.insert(index, _ChildEntry(child, kwargs))
 
         return child
+
+    # TODO "focus" would be more intuative but clashes with the UIFocusGroups :/
+    # maybe the two systems should be merged?
+    def _grap_active(self):
+        """Sets itself as the single active widget in the UIManager."""
+        ui_manager: UIManager | None = self.get_ui_manager()
+        if ui_manager:
+            ui_manager._set_active_widget(self)
+
+    def _release_active(self):
+        """Make this widget inactive in the UIManager."""
+        if not self._active:
+            return
+
+        ui_manager: UIManager | None = self.get_ui_manager()
+        if ui_manager and ui_manager._active_widget is self:
+            ui_manager._set_active_widget(None)
 
     def remove(self, child: UIWidget) -> dict | None:
         """Removes a child from the UIManager which was directly added to it.
@@ -694,6 +713,7 @@ class UIInteractiveWidget(UIWidget):
             and event.button in self.interaction_buttons
         ):
             self.pressed = True
+            self._grap_active()  # make this the active widget
             return EVENT_HANDLED
 
         if (
@@ -705,6 +725,7 @@ class UIInteractiveWidget(UIWidget):
             if self.rect.point_in_rect(event.pos):
                 if not self.disabled:
                     # Dispatch new on_click event, source is this widget itself
+                    self._grap_active()  # make this the active widget
                     self.dispatch_event(
                         "on_click",
                         UIOnClickEvent(
@@ -715,7 +736,7 @@ class UIInteractiveWidget(UIWidget):
                             modifiers=event.modifiers,
                         ),
                     )
-                    return EVENT_HANDLED
+                    return EVENT_HANDLED  # TODO should we return the result from on_click?
 
         return EVENT_UNHANDLED
 

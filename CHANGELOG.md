@@ -12,6 +12,14 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 - Added `Text.visible` (bool) property to control the visibility of text objects.
 - Fixed an issue causing points and lines to draw random primitives when
   passing in an empty list.
+- GUI
+  - Fix caret did not deactivate because of consumed mouse events. [2725](https://github.com/pythonarcade/arcade/issues/2725)
+  - Property listener can now receive:
+      - no args
+      - instance
+      - instance, value
+      - instance, value, old value
+    >   Listener accepting `*args` receive `instance, value` like in previous versions.
 
 ## 3.3.0
 
@@ -36,12 +44,6 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
     - Added property setters for `center_x` and `center_y`
     - Added property setters for `left`, `right`, `top`, and `bottom`
     - Users can now set widget position and size more intuitively without needing to access the `rect` property
-  - Property listener can now receive:
-    - no args
-    - instance
-    - instance, value
-    - instance, value, old value
-    > Listener accepting `*args` receive `instance, value` like in previous versions.
 
 - Rendering:
   - The `arcade.gl` package was restructured to be more modular in preparation for
