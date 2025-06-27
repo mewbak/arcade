@@ -48,8 +48,7 @@ class UIScrollBar(UIWidget):
         bind(self, "_dragging", self.trigger_render)
         bind(scroll_area, "scroll_x", self.trigger_full_render)
         bind(scroll_area, "scroll_y", self.trigger_full_render)
-        bind(scroll_area, "content_height", self.trigger_full_render)
-        bind(scroll_area, "content_width", self.trigger_full_render)
+        bind(scroll_area, "rect", self.trigger_full_render)
 
     def on_event(self, event: UIEvent) -> bool | None:
         # check if we are scrollable
