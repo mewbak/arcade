@@ -3,6 +3,12 @@
 You can grab pre-release versions from PyPi. See the available versions from the
 Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 
+## Unreleased
+
+- GUI
+  - Fix UIScrollBar creation
+
+
 ## 3.3.1
 
 - Fixed an issue causing NinePatch to not render correctly
