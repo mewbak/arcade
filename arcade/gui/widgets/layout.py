@@ -288,11 +288,11 @@ class UIBoxLayout(UILayout):
             child: The widget to add to the layout.
         """
         # subscribe to child's changes, which might affect the own size hint
-        bind(child, "_children", UIBoxLayout._trigger_size_hint_update)
-        bind(child, "rect", UIBoxLayout._trigger_size_hint_update)
-        bind(child, "size_hint", UIBoxLayout._trigger_size_hint_update)
-        bind(child, "size_hint_min", UIBoxLayout._trigger_size_hint_update)
-        bind(child, "size_hint_max", UIBoxLayout._trigger_size_hint_update)
+        bind(child, "_children", self._trigger_size_hint_update, weak=True)
+        bind(child, "rect", self._trigger_size_hint_update, weak=True)
+        bind(child, "size_hint", self._trigger_size_hint_update, weak=True)
+        bind(child, "size_hint_min", self._trigger_size_hint_update, weak=True)
+        bind(child, "size_hint_max", self._trigger_size_hint_update, weak=True)
 
         return super().add(child, **kwargs)
 
@@ -300,11 +300,11 @@ class UIBoxLayout(UILayout):
     def remove(self, child: UIWidget):
         """Remove a child from the layout."""
         # unsubscribe from child's changes
-        unbind(child, "_children", UIBoxLayout._trigger_size_hint_update)
-        unbind(child, "rect", UIBoxLayout._trigger_size_hint_update)
-        unbind(child, "size_hint", UIBoxLayout._trigger_size_hint_update)
-        unbind(child, "size_hint_min", UIBoxLayout._trigger_size_hint_update)
-        unbind(child, "size_hint_max", UIBoxLayout._trigger_size_hint_update)
+        unbind(child, "_children", self._trigger_size_hint_update)
+        unbind(child, "rect", self._trigger_size_hint_update)
+        unbind(child, "size_hint", self._trigger_size_hint_update)
+        unbind(child, "size_hint_min", self._trigger_size_hint_update)
+        unbind(child, "size_hint_max", self._trigger_size_hint_update)
 
         return super().remove(child)
 
@@ -547,11 +547,11 @@ class UIGridLayout(UILayout):
             row_span: Number of rows the widget will stretch for.
         """
         # subscribe to child's changes, which might affect the own size hint
-        bind(child, "_children", UIGridLayout._trigger_size_hint_update)
-        bind(child, "rect", UIGridLayout._trigger_size_hint_update)
-        bind(child, "size_hint", UIGridLayout._trigger_size_hint_update)
-        bind(child, "size_hint_min", UIGridLayout._trigger_size_hint_update)
-        bind(child, "size_hint_max", UIGridLayout._trigger_size_hint_update)
+        bind(child, "_children", self._trigger_size_hint_update, weak=True)
+        bind(child, "rect", self._trigger_size_hint_update, weak=True)
+        bind(child, "size_hint", self._trigger_size_hint_update, weak=True)
+        bind(child, "size_hint_min", self._trigger_size_hint_update, weak=True)
+        bind(child, "size_hint_max", self._trigger_size_hint_update, weak=True)
 
         return super().add(
             child,

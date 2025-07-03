@@ -1,9 +1,12 @@
 import inspect
 import sys
 import traceback
+import warnings
+import weakref
 from collections.abc import Callable
 from contextlib import contextmanager, suppress
 from enum import Enum
+from inspect import ismethod
 from typing import Any, Generic, TypeVar, cast
 from weakref import WeakKeyDictionary, ref
 
@@ -221,7 +224,52 @@ class Property(Generic[P]):
         self.set(instance, value)
 
 
-def bind(instance, property: str, callback: AnyListener):
+class _WeakCallback:
+    """Wrapper for weakly referencing a callback function.
+
+    Which allows to bind methods of the instance itself without
+    causing memory leaks.
+
+    Also supports to be stored in a dict or set, because it implements
+    __hash__ and __eq__ methods to match the original function.
+    """
+
+    def __init__(self, func):
+        self._func_type = _ListenerType.detect_callback_type(func)  # type: ignore[assignment]
+        self._hash = hash(func)
+
+        if inspect.ismethod(func):
+            self._func = weakref.WeakMethod(func)
+        else:
+            self._func = weakref.ref(func)
+
+    def __call__(self, instance, new_value, old_value):
+        func = self._func()
+        if func is None:
+            warnings.warn("WeakCallable was called without a callable object.")
+
+        if self._func_type == _ListenerType.NO_ARG:
+            return func()
+        elif self._func_type == _ListenerType.INSTANCE:
+            return func(instance)
+        elif self._func_type == _ListenerType.INSTANCE_VALUE:
+            return func(instance, new_value)
+        elif self._func_type == _ListenerType.INSTANCE_NEW_OLD:
+            return func(instance, new_value, old_value)
+
+        else:
+            raise TypeError(f"Unsupported callback type: {self._func_type}")
+
+    def __hash__(self):
+        return self._hash
+
+    def __eq__(self, other):
+        if ismethod(other):
+            return self._hash == hash(other)
+        return False
+
+
+def bind(instance, property: str, callback: AnyListener, weak=False):
     """Bind a function to the change event of the property.
 
     A reference to the function will be kept, so that it will be still
@@ -243,17 +291,24 @@ def bind(instance, property: str, callback: AnyListener):
 
     Binding to a method of the Property owner itself can cause a memory leak, because the
     owner is strongly referenced. Instead, bind the class method, which will be invoked with
-    the instance as first parameter.
-
+    the instance as first parameter. `bind(instance, "property_name", Instance.method)`.
+    Or use the `weak` parameter to bind the method weakly `bind(instance, "property_name", instance.method, weak=True)`
 
     Args:
         instance: Instance owning the property
         property: Name of the property
         callback: Function to call
+        weak: If True, the callback will be weakly referenced.
+            This is useful for methods of the instance itself to avoid memory leaks.
 
     Returns:
         None
     """
+
+    if weak:
+        # If weak is True, we use a _WeakCallable to avoid strong references
+        callback = _WeakCallback(callback)  # type: ignore[assignment]
+
     # TODO rename property to property_name for arcade 4.0 (just to be sure)
     t = type(instance)
     prop = getattr(t, property)

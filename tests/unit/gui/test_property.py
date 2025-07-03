@@ -144,11 +144,43 @@ def test_bind_callback_with_star_args():
     observer.call_args = None
 
 
-def test_unbind_callback():
+def test_unbind_function_callback():
+    called = False
+    def callback(*args):
+        nonlocal called
+        called = True
+
+    my_obj = MyObject()
+    bind(my_obj, "name", callback)
+
+    # WHEN
+    unbind(my_obj, "name", callback)
+    my_obj.name = "New Name"
+
+    assert not called
+    
+def test_unbind_method_callback():
     observer = Observer()
 
     my_obj = MyObject()
     bind(my_obj, "name", observer.call)
+
+    gc.collect()
+
+    # WHEN
+    unbind(my_obj, "name", observer.call)
+    my_obj.name = "New Name"
+
+    assert not observer.called
+
+
+def test_unbind_weak_method_callback():
+    observer = Observer()
+
+    my_obj = MyObject()
+    bind(my_obj, "name", observer.call, weak=True)
+
+    gc.collect()
 
     # WHEN
     unbind(my_obj, "name", observer.call)
