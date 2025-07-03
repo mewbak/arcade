@@ -7,6 +7,7 @@ Arcade [PyPi Release History](https://pypi.org/project/arcade/#history) page.
 
 - GUI
   - Fix UIScrollBar creation
+  - Fix memory leak: widgets were not garbage collected
 
 
 ## 3.3.1
