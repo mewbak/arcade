@@ -85,6 +85,8 @@ class _Obs(Generic[P]):
     @property
     def listeners(self) -> list[tuple[AnyListener, _ListenerType]]:
         """Returns a list of all listeners and type, both weak and strong."""
+        # todo returning a iterator would be more efficient, but might also break
+        # improve ~0.01 sec
         return list(self._listeners.items())
 
 
@@ -292,7 +294,8 @@ def bind(instance, property: str, callback: AnyListener, weak=False):
     Binding to a method of the Property owner itself can cause a memory leak, because the
     owner is strongly referenced. Instead, bind the class method, which will be invoked with
     the instance as first parameter. `bind(instance, "property_name", Instance.method)`.
-    Or use the `weak` parameter to bind the method weakly `bind(instance, "property_name", instance.method, weak=True)`
+    Or use the `weak` parameter to bind the method weakly
+    bind(instance, "property_name", instance.method, weak=True)`.
 
     Args:
         instance: Instance owning the property

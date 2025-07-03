@@ -146,6 +146,7 @@ def test_bind_callback_with_star_args():
 
 def test_unbind_function_callback():
     called = False
+
     def callback(*args):
         nonlocal called
         called = True
@@ -158,7 +159,8 @@ def test_unbind_function_callback():
     my_obj.name = "New Name"
 
     assert not called
-    
+
+
 def test_unbind_method_callback():
     observer = Observer()
 
