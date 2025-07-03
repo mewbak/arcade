@@ -3,6 +3,7 @@ import sys
 import traceback
 from collections.abc import Callable
 from contextlib import contextmanager, suppress
+from enum import Enum
 from typing import Any, Generic, TypeVar, cast
 from weakref import WeakKeyDictionary, ref
 
@@ -18,6 +19,41 @@ InstanceNewOldListener = Callable[[Any, Any, Any], None]
 AnyListener = NoArgListener | InstanceListener | InstanceValueListener | InstanceNewOldListener
 
 
+class _ListenerType(Enum):
+    """Enum to represent the type of listener"""
+
+    NO_ARG = 0
+    INSTANCE = 1
+    INSTANCE_VALUE = 2
+    INSTANCE_NEW_OLD = 3
+
+    @staticmethod
+    def detect_callback_type(callback: AnyListener) -> "_ListenerType":
+        """Normalizes the callback so every callback can be invoked with the same signature."""
+        signature = inspect.signature(callback)
+
+        # first detect the old *args default listener signatures
+        with suppress(TypeError):
+            signature.bind(..., ...)
+            return _ListenerType.INSTANCE_VALUE
+
+        # check for the most common signature
+        with suppress(TypeError):
+            signature.bind()
+            return _ListenerType.NO_ARG
+
+        # check for the other
+        with suppress(TypeError):
+            signature.bind(..., ..., ...)
+            return _ListenerType.INSTANCE_NEW_OLD
+
+        with suppress(TypeError):
+            signature.bind(...)
+            return _ListenerType.INSTANCE
+
+        raise TypeError("Callback is not callable")
+
+
 class _Obs(Generic[P]):
     """
     Internal holder for Property value and change listeners
@@ -29,14 +65,14 @@ class _Obs(Generic[P]):
         self.value = value
         # This will keep any added listener even if it is not referenced anymore
         # and would be garbage collected
-        self._listeners: dict[AnyListener, InstanceNewOldListener] = dict()
+        self._listeners: dict[AnyListener, _ListenerType] = dict()
 
     def add(
         self,
         callback: AnyListener,
     ):
         """Add a callback to the list of listeners"""
-        self._listeners[callback] = _Obs._normalize_callback(callback)
+        self._listeners[callback] = _ListenerType.detect_callback_type(callback)
 
     def remove(self, callback):
         """Remove a callback from the list of listeners"""
@@ -44,31 +80,9 @@ class _Obs(Generic[P]):
             del self._listeners[callback]
 
     @property
-    def listeners(self) -> list[InstanceNewOldListener]:
-        return list(self._listeners.values())
-
-    @staticmethod
-    def _normalize_callback(callback) -> InstanceNewOldListener:
-        """Normalizes the callback so every callback can be invoked with the same signature."""
-        signature = inspect.signature(callback)
-
-        with suppress(TypeError):
-            signature.bind(1, 1)
-            return lambda instance, new, old: callback(instance, new)
-
-        with suppress(TypeError):
-            signature.bind(1, 1, 1)
-            return lambda instance, new, old: callback(instance, new, old)
-
-        with suppress(TypeError):
-            signature.bind(1)
-            return lambda instance, new, old: callback(instance)
-
-        with suppress(TypeError):
-            signature.bind()
-            return lambda instance, new, old: callback()
-
-        raise TypeError("Callback is not callable")
+    def listeners(self) -> list[tuple[AnyListener, _ListenerType]]:
+        """Returns a list of all listeners and type, both weak and strong."""
+        return list(self._listeners.items())
 
 
 class Property(Generic[P]):
@@ -147,9 +161,16 @@ class Property(Generic[P]):
 
         """
         obs = self._get_obs(instance)
-        for listener in obs.listeners:
+        for listener, _listener_type in obs.listeners:
             try:
-                listener(instance, value, old_value)
+                if _listener_type == _ListenerType.NO_ARG:
+                    listener()  # type: ignore[call-arg]
+                elif _listener_type == _ListenerType.INSTANCE:
+                    listener(instance)  # type: ignore[call-arg]
+                elif _listener_type == _ListenerType.INSTANCE_VALUE:
+                    listener(instance, value)  # type: ignore[call-arg]
+                elif _listener_type == _ListenerType.INSTANCE_NEW_OLD:
+                    listener(instance, value, old_value)  # type: ignore[call-arg]
             except Exception:
                 print(
                     f"Change listener for {instance}.{self.name} = {value} raised an exception!",
@@ -157,7 +178,7 @@ class Property(Generic[P]):
                 )
                 traceback.print_exc()
 
-    def bind(self, instance, callback):
+    def bind(self, instance: Any, callback: AnyListener):
         """Binds a function to the change event of the property.
 
         A reference to the function will be kept.
@@ -200,7 +221,7 @@ class Property(Generic[P]):
         self.set(instance, value)
 
 
-def bind(instance, property: str, callback):
+def bind(instance, property: str, callback: AnyListener):
     """Bind a function to the change event of the property.
 
     A reference to the function will be kept, so that it will be still
@@ -220,6 +241,11 @@ def bind(instance, property: str, callback):
         my_obj.name = "Hans"
         # > Value of <__main__.MyObject ...> changed to Hans
 
+    Binding to a method of the Property owner itself can cause a memory leak, because the
+    owner is strongly referenced. Instead, bind the class method, which will be invoked with
+    the instance as first parameter.
+
+
     Args:
         instance: Instance owning the property
         property: Name of the property
@@ -228,6 +254,7 @@ def bind(instance, property: str, callback):
     Returns:
         None
     """
+    # TODO rename property to property_name for arcade 4.0 (just to be sure)
     t = type(instance)
     prop = getattr(t, property)
     if not isinstance(prop, Property):
