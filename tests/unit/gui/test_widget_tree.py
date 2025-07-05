@@ -131,23 +131,25 @@ def test_chained_widgets_are_collected_by_gc():
     del root
     gc.collect()
 
-    if objs_in_memory(UIWidget) > start_count:
-        print("Render object graph...")
-        import objgraph
+    # This might help, if the test fails ;)
+    # requires `objgraph`
+    # if objs_in_memory(UIWidget) > start_count:
+    # print("Render object graph...")
+    # import objgraph
+    #
+    # objgraph.show_chain(
+    #     objgraph.find_backref_chain(
+    #         [obj for obj in gc.get_objects() if isinstance(obj, UIWidget)][1],
+    #         objgraph.is_proper_module,
+    #     ),
+    #     # filename="chain.png",
+    # )
 
-        objgraph.show_chain(
-            objgraph.find_backref_chain(
-                [obj for obj in gc.get_objects() if isinstance(obj, UIWidget)][1],
-                objgraph.is_proper_module,
-            ),
-            # filename="chain.png",
-        )
-
-        # print("Render backrefs...")
-        # objgraph.show_backrefs(
-        #     [[obj for obj in gc.get_objects() if isinstance(obj, UIWidget)][1]],
-        #     max_depth=15,
-        #     # filename="sample-graph.png",
-        # )
+    # print("Render backrefs...")
+    # objgraph.show_backrefs(
+    #     [[obj for obj in gc.get_objects() if isinstance(obj, UIWidget)][1]],
+    #     max_depth=15,
+    #     # filename="sample-graph.png",
+    # )
 
     assert objs_in_memory(UIWidget) == start_count
