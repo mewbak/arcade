@@ -122,6 +122,9 @@ class Camera2D:
         render_target = render_target or self._window.ctx.screen
         viewport = viewport or LBWH(*render_target.viewport)
 
+        if not isinstance(viewport, Rect):
+            raise TypeError("viewport must be a Rect type,use arcade.LBWH or arcade.types.Viewport")
+
         if aspect is None:
             width, height = viewport.size
         elif aspect == 0.0:
@@ -135,6 +138,7 @@ class Camera2D:
             width = viewport.width
             height = viewport.width / aspect
         viewport = XYWH(viewport.x, viewport.y, width, height)
+
         half_width = width / 2
         half_height = height / 2
 
@@ -173,7 +177,8 @@ class Camera2D:
             left=left, right=right, top=top, bottom=bottom, near=near, far=far
         )
 
-        self.viewport: Rect = viewport
+        self.viewport = viewport
+
         """
         A rect which describes how the final projection should be mapped
         from unit-space. defaults to the size of the render_target or window
@@ -289,7 +294,7 @@ class Camera2D:
         _projection = generate_orthographic_matrix(self.projection_data, self.zoom)
         _view = generate_view_matrix(self.view_data)
 
-        self._window.ctx.viewport = self.viewport.lbwh_int
+        self._window.ctx.viewport = self._viewport.lbwh_int
         self._window.ctx.scissor = None if not self.scissor else self.scissor.lbwh_int
         self._window.projection = _projection
         self._window.view = _view
@@ -322,7 +327,7 @@ class Camera2D:
 
         return project_orthographic(
             world_coordinate,
-            self.viewport.lbwh_int,
+            self._viewport.lbwh_int,
             _view,
             _projection,
         )
@@ -345,7 +350,9 @@ class Camera2D:
 
         _projection = generate_orthographic_matrix(self.projection_data, self.zoom)
         _view = generate_view_matrix(self.view_data)
-        return unproject_orthographic(screen_coordinate, self.viewport.lbwh_int, _view, _projection)
+        return unproject_orthographic(
+            screen_coordinate, self._viewport.lbwh_int, _view, _projection
+        )
 
     def equalize(self) -> None:
         """
@@ -470,8 +477,7 @@ class Camera2D:
                 h = value.width / aspect
             value = XYWH(value.x, value.y, w, h)
 
-        if viewport:
-            self.viewport = value
+        self.viewport = value
 
         if projection:
             x, y = self._projection_data.rect.x, self._projection_data.rect.y
@@ -498,7 +504,7 @@ class Camera2D:
         ux, uy, *_ = up
         rx, ry = uy, -ux  # up x Z'
 
-        l, r, b, t = self.viewport.lrbt
+        l, r, b, t = self._viewport.lrbt
         x, y = self.position
 
         x_points = (
@@ -882,16 +888,27 @@ class Camera2D:
         self._projection_data.far = new_far
 
     @property
+    def viewport(self) -> Rect:
+        return self._viewport
+
+    @viewport.setter
+    def viewport(self, viewport: Rect) -> None:
+        if not isinstance(viewport, Rect):
+            raise TypeError("viewport must be a Rect type,use arcade.LBWH or arcade.types.Viewport")
+
+        self._viewport = viewport
+
+    @property
     def viewport_width(self) -> int:
         """
         The width of the viewport.
         Defines the number of pixels drawn too horizontally.
         """
-        return int(self.viewport.width)
+        return int(self._viewport.width)
 
     @viewport_width.setter
     def viewport_width(self, new_width: int) -> None:
-        self.viewport = self.viewport.resize(new_width, anchor=Vec2(0.0, 0.0))
+        self._viewport = self._viewport.resize(new_width, anchor=Vec2(0.0, 0.0))
 
     @property
     def viewport_height(self) -> int:
@@ -899,18 +916,18 @@ class Camera2D:
         The height of the viewport.
         Defines the number of pixels drawn too vertically.
         """
-        return int(self.viewport.height)
+        return int(self._viewport.height)
 
     @viewport_height.setter
     def viewport_height(self, new_height: int) -> None:
-        self.viewport = self.viewport.resize(height=new_height, anchor=Vec2(0.0, 0.0))
+        self._viewport = self._viewport.resize(height=new_height, anchor=Vec2(0.0, 0.0))
 
     @property
     def viewport_left(self) -> int:
         """
         The left most pixel drawn to on the X axis.
         """
-        return int(self.viewport.left)
+        return int(self._viewport.left)
 
     @viewport_left.setter
     def viewport_left(self, new_left: int) -> None:
@@ -918,14 +935,14 @@ class Camera2D:
         Set the left most pixel drawn to.
         This moves the position of the viewport, and does not change the size.
         """
-        self.viewport = self.viewport.align_left(new_left)
+        self._viewport = self._viewport.align_left(new_left)
 
     @property
     def viewport_right(self) -> int:
         """
         The right most pixel drawn to on the X axis.
         """
-        return int(self.viewport.right)
+        return int(self._viewport.right)
 
     @viewport_right.setter
     def viewport_right(self, new_right: int) -> None:
@@ -933,14 +950,14 @@ class Camera2D:
         Set the right most pixel drawn to.
         This moves the position of the viewport, and does not change the size.
         """
-        self.viewport = self.viewport.align_right(new_right)
+        self._viewport = self._viewport.align_right(new_right)
 
     @property
     def viewport_bottom(self) -> int:
         """
         The bottom most pixel drawn to on the Y axis.
         """
-        return int(self.viewport.bottom)
+        return int(self._viewport.bottom)
 
     @viewport_bottom.setter
     def viewport_bottom(self, new_bottom: int) -> None:
@@ -948,14 +965,14 @@ class Camera2D:
         Set the bottom most pixel drawn to.
         This moves the position of the viewport, and does not change the size.
         """
-        self.viewport = self.viewport.align_bottom(new_bottom)
+        self._viewport = self._viewport.align_bottom(new_bottom)
 
     @property
     def viewport_top(self) -> int:
         """
         The top most pixel drawn to on the Y axis.
         """
-        return int(self.viewport.top)
+        return int(self._viewport.top)
 
     @viewport_top.setter
     def viewport_top(self, new_top: int) -> None:
@@ -963,7 +980,7 @@ class Camera2D:
         Set the top most pixel drawn to.
         This moves the position of the viewport, and does not change the size.
         """
-        self.viewport = self.viewport.align_top(new_top)
+        self._viewport = self._viewport.align_top(new_top)
 
     @property
     def up(self) -> Vec2:
