@@ -12,7 +12,13 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import pyglet
-import pyglet.gl as gl
+
+from arcade.utils import is_pyodide
+
+if is_pyodide():
+    pyglet.options.backend = "webgl"
+
+import pyglet.config
 import pyglet.window.mouse
 from pyglet.display.base import Screen, ScreenMode
 from pyglet.event import EVENT_HANDLE_STATE, EVENT_UNHANDLED
@@ -24,7 +30,7 @@ from arcade.color import BLACK
 from arcade.context import ArcadeContext
 from arcade.gl.provider import get_arcade_context, set_provider
 from arcade.types import LBWH, Color, Rect, RGBANormalized, RGBOrA255
-from arcade.utils import is_pyodide, is_raspberry_pi
+from arcade.utils import is_raspberry_pi
 from arcade.window_commands import get_display_size, set_window
 
 if TYPE_CHECKING:
@@ -173,6 +179,7 @@ class Window(pyglet.window.Window):
             gl_api = "webgl"
 
         if gl_api == "webgl":
+            pyglet.options.backend = "webgl"
             desired_gl_provider = "webgl"
 
         # Detect Raspberry Pi and switch to OpenGL ES 3.1
@@ -187,15 +194,34 @@ class Window(pyglet.window.Window):
 
         config = None
         # Attempt to make window with antialiasing
-        if antialiasing:
-            try:
-                config = gl.Config(
+        if gl_api == "opengl" or gl_api == "opengles":
+            if antialiasing:
+                try:
+                    config = pyglet.config.OpenGLConfig(
+                        major_version=gl_version[0],
+                        minor_version=gl_version[1],
+                        opengl_api=gl_api.replace("open", ""),  # type: ignore  # pending: upstream fix
+                        double_buffer=True,
+                        sample_buffers=1,
+                        samples=samples,
+                        depth_size=24,
+                        stencil_size=8,
+                        red_size=8,
+                        green_size=8,
+                        blue_size=8,
+                        alpha_size=8,
+                    )
+                except RuntimeError:
+                    LOG.warning("Skipping antialiasing due missing hardware/driver support")
+                    config = None
+                    antialiasing = False
+            # If we still don't have a config
+            if not config:
+                config = pyglet.config.OpenGLConfig(
                     major_version=gl_version[0],
                     minor_version=gl_version[1],
                     opengl_api=gl_api.replace("open", ""),  # type: ignore  # pending: upstream fix
                     double_buffer=True,
-                    sample_buffers=1,
-                    samples=samples,
                     depth_size=24,
                     stencil_size=8,
                     red_size=8,
@@ -203,35 +229,14 @@ class Window(pyglet.window.Window):
                     blue_size=8,
                     alpha_size=8,
                 )
-                display = pyglet.display.get_display()
-                screen = screen or display.get_default_screen()
-                if screen:
-                    config = screen.get_best_config(config)
-            except pyglet.window.NoSuchConfigException:
-                LOG.warning("Skipping antialiasing due missing hardware/driver support")
-                config = None
-                antialiasing = False
-        # If we still don't have a config
-        if not config:
-            config = gl.Config(
-                major_version=gl_version[0],
-                minor_version=gl_version[1],
-                opengl_api=gl_api.replace("open", ""),  # type: ignore  # pending: upstream fix
-                double_buffer=True,
-                depth_size=24,
-                stencil_size=8,
-                red_size=8,
-                green_size=8,
-                blue_size=8,
-                alpha_size=8,
-            )
         try:
+            # This type ignore is here because somehow Pyright thinks this is an Emscripten window
             super().__init__(
                 width=width,
                 height=height,
                 caption=title,
                 resizable=resizable,
-                config=config,
+                config=config,  # type: ignore
                 vsync=vsync,
                 visible=visible,
                 style=style,
@@ -245,11 +250,15 @@ class Window(pyglet.window.Window):
                 "Unable to create an OpenGL 3.3+ context. "
                 "Check to make sure your system supports OpenGL 3.3 or higher."
             )
-        if antialiasing:
-            try:
-                gl.glEnable(gl.GL_MULTISAMPLE_ARB)
-            except gl.GLException:
-                LOG.warning("Warning: Anti-aliasing not supported on this computer.")
+        if gl_api == "opengl" or gl_api == "opengles":
+            if antialiasing:
+                import pyglet.graphics.api.gl as gl
+                import pyglet.graphics.api.gl.lib as gllib
+
+                try:
+                    gl.glEnable(gl.GL_MULTISAMPLE_ARB)
+                except gllib.GLException:
+                    LOG.warning("Warning: Anti-aliasing not supported on this computer.")
 
         _setup_clock()
         _setup_fixed_clock(fixed_rate)
@@ -348,8 +357,10 @@ class Window(pyglet.window.Window):
         """
         return self._current_view
 
+    # TODO: This is overriding the ctx function from Pyglet's BaseWindow which returns the
+    # SurfaceContext class from pyglet. We should probably rename this.
     @property
-    def ctx(self) -> ArcadeContext:
+    def ctx(self) -> ArcadeContext:  # type: ignore
         """
         The OpenGL context for this window.
 
@@ -759,7 +770,7 @@ class Window(pyglet.window.Window):
         """
         return EVENT_UNHANDLED
 
-    def set_mouse_visible(self, visible: bool = True) -> None:
+    def set_mouse_cursor_visible(self, visible: bool = True) -> None:
         """
         Set whether to show the system's cursor while over the window
 
@@ -790,7 +801,7 @@ class Window(pyglet.window.Window):
         Args:
             visible: Whether to hide the system mouse cursor
         """
-        super().set_mouse_visible(visible)
+        super().set_mouse_cursor_visible(visible)
 
     def on_action(self, action_name: str, state) -> None:
         """
@@ -845,6 +856,12 @@ class Window(pyglet.window.Window):
                       See :ref:`keyboard_modifiers`.
         """
         return EVENT_UNHANDLED
+
+    def before_draw(self) -> None:
+        """
+        New event in base pyglet window. This is current unused in Arcade.
+        """
+        pass
 
     def on_draw(self) -> EVENT_HANDLE_STATE:
         """
@@ -1129,17 +1146,17 @@ class Window(pyglet.window.Window):
         """Set if we sync our draws to the monitors vertical sync rate."""
         super().set_vsync(vsync)
 
-    def set_mouse_platform_visible(self, platform_visible=None) -> None:
+    def set_mouse_cursor_platform_visible(self, platform_visible=None) -> None:
         """
         .. warning:: You are probably looking for
-                     :meth:`~.Window.set_mouse_visible`!
+                     :meth:`~.Window.set_mouse_cursor_visible`!
 
         This is a lower level function inherited from the pyglet window.
 
         For more information on what this means, see the documentation
-        for :py:meth:`pyglet.window.Window.set_mouse_platform_visible`.
+        for :py:meth:`pyglet.window.Window.set_mouse_cursor_platform_visible`.
         """
-        super().set_mouse_platform_visible(platform_visible)
+        super().set_mouse_cursor_platform_visible(platform_visible)
 
     def set_exclusive_mouse(self, exclusive=True) -> None:
         """Capture the mouse."""

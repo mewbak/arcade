@@ -15,7 +15,7 @@ from weakref import WeakSet, WeakValueDictionary, finalize, ref
 import PIL.Image
 from PIL import Image, ImageDraw
 from PIL.Image import Resampling
-from pyglet.image.atlas import (
+from pyglet.graphics.atlas import (
     Allocator,
     AllocatorException,
 )
@@ -712,10 +712,10 @@ class DefaultTextureAtlas(TextureAtlasBase):
 
         # Bind textures for atlas copy shader
         atlas_texture_old.use(0)
-        self._texture.use(1)
-        image_uvs_old.texture.use(2)
-        self._image_uvs.texture.use(3)
+        image_uvs_old.texture.use(1)
+        self._image_uvs.texture.use(2)
         self._ctx.atlas_resize_program["border"] = float(self._border)
+        self._ctx.atlas_resize_program["size_new"] = size
         self._ctx.atlas_resize_program["projection"] = Mat4.orthogonal_projection(
             0,
             self.width,

@@ -59,7 +59,7 @@ import pyglet
 
 # Enable HiDPI support using stretch mode
 if os.environ.get("ARCADE_TEST"):
-    pyglet.options.dpi_scaling = "real"
+    pyglet.options.dpi_scaling = "platform"
 else:
     pyglet.options.dpi_scaling = "stretch"
 
@@ -67,13 +67,6 @@ else:
 headless: Final[bool] = bool(os.environ.get("ARCADE_HEADLESS"))
 if headless:
     pyglet.options.headless = headless
-
-
-# from arcade import utils
-# Disable shadow window on macs and in headless mode.
-# if sys.platform == "darwin" or os.environ.get("ARCADE_HEADLESS") or utils.is_raspberry_pi():
-# NOTE: We always disable shadow window now to have consistent behavior across platforms.
-pyglet.options.shadow_window = False
 
 # Imports from modules that don't do anything circular
 
@@ -199,9 +192,10 @@ from .physics_engines import PhysicsEngineSimple
 from .tilemap import load_tilemap
 from .tilemap import TileMap
 
-from .pymunk_physics_engine import PymunkPhysicsEngine
-from .pymunk_physics_engine import PymunkPhysicsObject
-from .pymunk_physics_engine import PymunkException
+if sys.platform != "emscripten":
+    from .pymunk_physics_engine import PymunkPhysicsEngine
+    from .pymunk_physics_engine import PymunkPhysicsObject
+    from .pymunk_physics_engine import PymunkException
 
 from .version import VERSION
 
@@ -238,6 +232,7 @@ from arcade import types as types
 from arcade import math as math
 from arcade import shape_list as shape_list
 from arcade import hitbox as hitbox
+from arcade import input as input
 from arcade import experimental as experimental
 from arcade.types import rect
 
@@ -388,6 +383,7 @@ __all__ = [
     "get_default_texture",
     "get_default_image",
     "hitbox",
+    "input",
     "experimental",
     "rect",
     "color",

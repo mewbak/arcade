@@ -8,6 +8,7 @@ from arcade.math import get_distance
 from arcade.sprite import BasicSprite, SpriteType
 from arcade.types import Point
 from arcade.types.rect import Rect
+from arcade.window_commands import get_window
 
 from .sprite_list import SpriteSequence
 
@@ -174,10 +175,14 @@ def check_for_collision_with_list(
     # Spatial
     if sprite_list.spatial_hash is not None and (method == 1 or method == 0):
         sprites_to_check = sprite_list.spatial_hash.get_sprites_near_sprite(sprite)
-    elif method == 3 or (method == 0 and len(sprite_list) <= 1500):
+    elif (
+        method == 3
+        or (method == 0 and len(sprite_list) <= 1500)
+        or get_window().ctx._gl_api == "webgl"
+    ):
         sprites_to_check = sprite_list
     else:
-        # GPU transform
+        # GPU transform - Not on WebGL
         sprites_to_check = _get_nearby_sprites(sprite, sprite_list)
 
     return [
@@ -235,10 +240,14 @@ def check_for_collision_with_lists(
         # Spatial
         if sprite_list.spatial_hash is not None and (method == 1 or method == 0):
             sprites_to_check = sprite_list.spatial_hash.get_sprites_near_sprite(sprite)
-        elif method == 3 or (method == 0 and len(sprite_list) <= 1500):
+        elif (
+            method == 3
+            or (method == 0 and len(sprite_list) <= 1500)
+            or get_window().ctx._gl_api == "webgl"
+        ):
             sprites_to_check = sprite_list
         else:
-            # GPU transform
+            # GPU transform - Not on WebGL
             sprites_to_check = _get_nearby_sprites(sprite, sprite_list)
 
         for sprite2 in sprites_to_check:
