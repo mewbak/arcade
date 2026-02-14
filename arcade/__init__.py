@@ -145,6 +145,17 @@ if not headless:
     from .controller import ControllerManager
     from .controller import get_controllers
 
+from .input import ActionState
+from .input import ControllerButtons
+from .input import ControllerSticks
+from .input import ControllerTriggers
+from .input import InputManager
+from .input import Keys
+from .input import MouseAxes
+from .input import MouseButtons
+from .input import PSControllerButtons
+from .input import XBoxControllerButtons
+
 from .sound import Sound
 from .sound import load_sound
 from .sound import play_sound
@@ -249,6 +260,16 @@ from .text import (
 )
 
 __all__ = [
+    "ActionState",
+    "ControllerButtons",
+    "ControllerSticks",
+    "ControllerTriggers",
+    "InputManager",
+    "Keys",
+    "MouseAxes",
+    "MouseButtons",
+    "PSControllerButtons",
+    "XBoxControllerButtons",
     "AStarBarrierList",
     "AnimatedWalkingSprite",
     "TextureAnimationSprite",

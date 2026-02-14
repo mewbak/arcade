@@ -65,6 +65,29 @@ class InputDevice(Enum):
 
 
 class InputManager:
+    """
+    The InputManager is responsible for managing input for a given device, this can be the keyboard/mouse or a controller.
+
+    In general, you can share one InputManager for one controller and the keyboard/mouse, there are even utilities to handle
+    automatically switching between them as the active device. However if you intend to have multiple controllers connected
+    to your game, each controller should have it's own InputManager.
+
+    For runnable examples of how to use this, please see Arcdade's
+    :ref:`built-in InputManager examples <input_manager_examples>`.
+
+    Args:
+        controller:
+            Either a Pyglet Controller object or None if you only want to use the keyboard/mouse.
+        allow_keyboard:
+            Whether to allow keyboard input, defaults to True, can be changed safely after initialization.
+        action_handlers:
+            Either one or a collection of functions that will be called for every action that is triggered.
+            :py:meth:`InputManager.subscribe_to_action` may be preferred to subscribe to individual actions instead.
+        controller_deadzone:
+            The deadzone for controller input, defaults to 0.1. If changes to axis values are within this
+            range from the underlying hardware, they will be ignored.
+    """
+
     def __init__(
         self,
         controller: Controller | None = None,
@@ -120,13 +143,29 @@ class InputManager:
             self.controller.push_handlers(
                 self.on_button_press,
                 self.on_button_release,
-                self.on_stick_motion,
+                self.on_leftstick_motion,
+                self.on_rightstick_motion,
                 self.on_dpad_motion,
-                self.on_trigger_motion,
+                self.on_lefttrigger_motion,
+                self.on_righttrigger_motion,
             )
             self.active_device = InputDevice.CONTROLLER
 
     def serialize(self) -> RawInputManager:
+        """
+        Serializes the current state of the InputManager into a RawInputManager dictionary which can easily be saved to JSON.
+
+        This does not include current values of inputs, but rather the structure of the InputManager. Including:
+          - Actions: All registered actions
+          - Axes: All registered axis inputs
+          - Current Mappings: All current mappings of underlying inputs to actions/axis
+
+        The output dictionary of this function can be passed to :meth:`arcade.InputManager.parse` to create a new InputManager
+        from a serialized one.
+
+        Returns:
+            A RawInputManager dictionary representing the current state of the InputManager.
+        """
         raw_actions = []
         for action in self.actions.values():
             raw_actions.append(serialize_action(action))
@@ -141,6 +180,13 @@ class InputManager:
 
     @classmethod
     def parse(cls, raw: RawInputManager) -> InputManager:
+        """
+        Create a new InputManager from a serialized dictionary. Can be used in combination with the :meth:`arcade.InputManager.serialize` to
+        save/load input configurations.
+
+        Returns:
+            A new InputManager with the state defined in the provided RawInputManager dictionary.
+        """
         final = cls(controller_deadzone=raw["controller_deadzone"])
 
         for raw_action in raw["actions"]:
@@ -169,6 +215,16 @@ class InputManager:
         return final
 
     def copy_existing(self, existing: InputManager):
+        """
+        Copies the state of another InputManager into this one. Note that this does not create a new InputManager, but modifies the one on which it is called.
+
+        This does not copy current input values, just the structure/mappings of the InputManager.
+
+        If you want to create a new InputManager from an existing one, use :meth:`arcade.InputManager.from_existing`
+
+        Args:
+            existing: The InputManager to copy from.
+        """
         self.actions = existing.actions.copy()
         self.keys_to_actions = existing.keys_to_actions.copy()
         self.controller_buttons_to_actions = existing.controller_buttons_to_actions.copy()
@@ -185,41 +241,67 @@ class InputManager:
         existing: InputManager,
         controller: pyglet.input.Controller | None = None,
     ) -> InputManager:
+        """
+        Create a new InputManager from an existing one. This does not copy current input values, just the structure/mappings of the InputManager.
+
+        If you want to create a new InputManager from a serialized dictionary, use :meth:`arcade.InputManager.parse`
+
+        Args:
+            existing: The InputManager to copy from.
+            controller: The controller to use for this InputManager. If None, no Controller will be bound.
+
+        Returns:
+            A new InputManager with the state defined in the provided existing InputManager.
+        """
         new = cls(
             allow_keyboard=existing.allow_keyboard,
             controller=controller,
             controller_deadzone=existing.controller_deadzone,
         )
         new.copy_existing(existing)
-        new.actions = existing.actions.copy()
 
         return new
 
     def bind_controller(self, controller: Controller):
+        """
+        Bind a controller to this InputManager. If a controller is already bound, it will be unbound first.
+
+        Upon binding a controller it will be set as the active device.
+
+        Args:
+            controller: The controller to bind to this InputManager.
+        """
         if self.controller:
-            self.controller.remove_handlers()
+            self.unbind_controller()
 
         self.controller = controller
         self.controller.open()
         self.controller.push_handlers(
             self.on_button_press,
             self.on_button_release,
-            self.on_stick_motion,
+            self.on_leftstick_motion,
+            self.on_rightstick_motion,
             self.on_dpad_motion,
-            self.on_trigger_motion,
+            self.on_lefttrigger_motion,
+            self.on_righttrigger_motion,
         )
         self.active_device = InputDevice.CONTROLLER
 
     def unbind_controller(self):
+        """
+        Unbind the currently bound controller from this InputManager.
+        """
         if not self.controller:
             return
 
         self.controller.remove_handlers(
             self.on_button_press,
             self.on_button_release,
-            self.on_stick_motion,
+            self.on_leftstick_motion,
+            self.on_rightstick_motion,
             self.on_dpad_motion,
-            self.on_trigger_motion,
+            self.on_lefttrigger_motion,
+            self.on_righttrigger_motion,
         )
         self.controller.close()
         self.controller = None
@@ -229,6 +311,11 @@ class InputManager:
 
     @property
     def allow_keyboard(self):
+        """
+        Whether the keyboard is allowed for this InputManager. This also effects mouse input.
+
+        If this is false then all keyboard and mouse input will be ignored regardless of if there are mappings for them.
+        """
         return self._allow_keyboard
 
     @allow_keyboard.setter
@@ -251,14 +338,27 @@ class InputManager:
         self,
         name: str,
     ):
+        """
+        Create a new action with the given name. If an action with the same name already exists, this will do nothing.
+
+        Args:
+            name: The name of the action to create.
+        """
+        if name in self.actions:
+            return
+
         action = Action(name)
         self.actions[name] = action
 
     def remove_action(self, name: str):
-        self.clear_action_input(name)
-
+        """
+        Remove the specified action. If the action does not exist, this will do nothing. All registered inputs for the action will be removed.
+        Args:
+            name: The name of the action to remove.
+        """
         to_remove = self.actions.get(name, None)
         if to_remove:
+            self.clear_action_input(name)
             del self.actions[name]
 
     def add_action_input(
@@ -269,6 +369,16 @@ class InputManager:
         mod_ctrl: bool = False,
         mod_alt: bool = False,
     ):
+        """
+        Register an input to an action.
+
+        Args:
+            action: The action to register the input for
+            input: The input to register
+            mod_shift: The input will only trigger if the Shift keyboard key is also held
+            mod_ctrl: The input will only trigger if the Control keyboard key is also held
+            mod_alt: The input will only trigger if the Alt keyboard key is also held
+        """
         mapping = ActionMapping(input, mod_shift, mod_ctrl, mod_alt)
         self.actions[action].add_mapping(mapping)
 
@@ -285,12 +395,21 @@ class InputManager:
             if input.value not in self.mouse_buttons_to_actions:
                 self.mouse_buttons_to_actions[input.value] = set()
             self.mouse_buttons_to_actions[input.value].add(action)
-        elif mapping._input_type == InputType.CONTROLLER_AXIS:
+        elif (
+            mapping._input_type == InputType.CONTROLLER_AXIS_SINGLE
+            or mapping._input_type == InputType.CONTROLLER_AXIS_DOUBLE
+        ):
             if input.value not in self.controller_axes_to_actions:
                 self.controller_axes_to_actions[input.value] = set()
             self.controller_axes_to_actions[input.value].add(action)
 
     def clear_action_input(self, action: str):
+        """
+        Clears all registered inputs for a given action.
+
+        Args:
+            action: The name of the action to clear.
+        """
         self.actions[action]._mappings.clear()
         _clean_dicts(
             action,
@@ -301,14 +420,38 @@ class InputManager:
         )
 
     def register_action_handler(self, handler: OneOrIterableOf[Callable[[str, ActionState], Any]]):
+        """
+        Register a callback function for all actions from this InputManager.
+
+        The callback function should accept a String with the name of the Action, and an ActionState.
+        This callback will receive all action events, regardless of if :meth:`arcade.InputManager.subscribe_to_action` has been used as well.
+
+        Args:
+            handler: The callback function to register.
+        """
         grow_sequence(self.on_action_listeners, handler, append_if=callable)
 
     def subscribe_to_action(self, name: str, subscriber: Callable[[ActionState], Any]):
+        """
+        Subscribe a callback to given action.
+
+        The callback function should accept an ActionState parameter.
+
+        Args:
+            name: The name of the action to subscribe to.
+            subscriber: The callback function which will be called.
+        """
         old = self.action_subscribers.get(name, set())
         old.add(subscriber)
         self.action_subscribers[name] = old
 
     def new_axis(self, name: str):
+        """
+        Create a new axis with the given name.
+
+        Args:
+            name: The name of the axis
+        """
         if name in self.axes:
             raise AttributeError(f"Tried to create Axis with duplicate name: {name}")
 
@@ -317,6 +460,14 @@ class InputManager:
         self.axes_state[name] = 0.0
 
     def add_axis_input(self, axis: str, input: InputEnum, scale: float = 1.0):
+        """
+        Register an input to an axis.
+
+        Args:
+            axis: The axis to register the input for
+            input: The input to register
+            scale: The value to multiply the input by, for non analog inputs the scale value is used literally.
+        """
         mapping = AxisMapping(input, scale)
         self.axes[axis].add_mapping(mapping)
 
@@ -328,26 +479,69 @@ class InputManager:
             if input.value not in self.controller_buttons_to_axes:
                 self.controller_buttons_to_axes[input.value] = set()
             self.controller_buttons_to_axes[input.value].add(axis)
-        elif mapping._input_type == InputType.CONTROLLER_AXIS:
+        elif (
+            mapping._input_type == InputType.CONTROLLER_AXIS_SINGLE
+            or mapping._input_type == InputType.CONTROLLER_AXIS_DOUBLE
+        ):
             if input.value not in self.controller_analog_to_axes:
                 self.controller_analog_to_axes[input.value] = set()
             self.controller_analog_to_axes[input.value].add(axis)
 
+    def add_axis_input_combined(
+        self, axis: str, positive: InputEnum, negative: InputEnum, scale: float = 1.0
+    ):
+        """
+        This is a helper function that wraps :meth:`arcade.InputManager.add_axis_input` to add two inputs
+        with a positive and negative scale.
+
+        For example, you can do:
+        add_axis_input_combined("MoveHorizontal", arcade.Keys.RIGHT, arcade.Keys.LEFT, 1.0)
+        instead of:
+        add_axis_input("MoveHorizontal", arcade.Keys.RIGHT, 1.0)
+        add_axis_input("MoveHorizontal", arcade.Keys.LEFT, -1.0)
+
+        Args:
+            axis: The axis name to register the input for
+            positive: The input that will correspond to the positive side of the axis
+            negative: The input that will correspond to the negative side of the axis
+            scale: The value to multiply the input by, for non analog inputs the scale value is used literally.
+        """
+        self.add_axis_input(axis, positive, scale)
+        self.add_axis_input(axis, negative, -scale)
+
     def clear_axis_input(self, axis: str):
+        """
+        Clear all registered inputs for the given axis.
+
+        Args:
+            axis: The axis to clear
+        """
         self.axes[axis]._mappings.clear()
         _clean_dicts(
             axis, self.keys_to_axes, self.controller_analog_to_axes, self.controller_buttons_to_axes
         )
 
-    def remove_axis(self, name: str):
-        self.clear_axis_input(name)
+    def remove_axis(self, axis: str):
+        """
+        Completely remove an axis from the manager. This will also clear the registered inputs for that axis.
 
-        to_remove = self.axes.get(name, None)
+        Args:
+            axis: The axis to remove
+        """
+        self.clear_axis_input(axis)
+
+        to_remove = self.axes.get(axis, None)
         if to_remove:
-            del self.axes[name]
-            del self.axes_state[name]
+            del self.axes[axis]
+            del self.axes_state[axis]
 
     def axis(self, name: str) -> float:
+        """
+        Get the current value of a given axis.
+
+        Args:
+            name: The axis to get the value of
+        """
         return self.axes_state[name]
 
     def dispatch_action(self, action: str, state: ActionState):
@@ -439,75 +633,61 @@ class InputManager:
         for action_name in buttons_to_actions:
             self.dispatch_action(action_name, ActionState.RELEASED)
 
-    def on_stick_motion(self, controller: Controller, name: str, motion: pyglet.math.Vec2):
+    def handle_stick_motion(self, stick: str, motion: pyglet.math.Vec2):
         x_value, y_value = motion.x, motion.y
-        if name == "leftx":
-            self.window.dispatch_event(
-                "on_stick_motion",
-                self.controller,
-                "leftxpositive" if x_value > 0 else "leftxnegative",
-                x_value,
-                y_value,
-            )
-        elif name == "lefty":
-            self.window.dispatch_event(
-                "on_stick_motion",
-                self.controller,
-                "leftypositive" if y_value > 0 else "leftynegative",
-                x_value,
-                y_value,
-            )
-        elif name == "rightx":
-            self.window.dispatch_event(
-                "on_stick_motion",
-                self.controller,
-                "rightxpositive" if x_value > 0 else "rightxpositive",
-                x_value,
-                y_value,
-            )
-        elif name == "righty":
-            self.window.dispatch_event(
-                "on_stick_motion",
-                self.controller,
-                "rightypositive" if y_value > 0 else "rightynegative",
-                x_value,
-                y_value,
-            )
 
-        axes_to_actions = self.controller_axes_to_actions.get(name, set())
+        has_x = x_value > self.controller_deadzone or x_value < -self.controller_deadzone
+        has_y = y_value > self.controller_deadzone or y_value < -self.controller_deadzone
 
-        if (
-            x_value > self.controller_deadzone
-            or x_value < -self.controller_deadzone
-            or y_value > self.controller_deadzone
-            or y_value < -self.controller_deadzone
-        ):
-            self.active_device = InputDevice.CONTROLLER
-
+        if has_x:
+            axes_to_actions = self.controller_axes_to_actions.get(f"{stick}stickx", set())
             for action_name in axes_to_actions:
                 self.dispatch_action(action_name, ActionState.PRESSED)
 
-            return
+        if has_y:
+            axes_to_actions = self.controller_axes_to_actions.get(f"{stick}sticky", set())
+            for action_name in axes_to_actions:
+                self.dispatch_action(action_name, ActionState.PRESSED)
 
-        for action_name in axes_to_actions:
-            self.dispatch_action(action_name, ActionState.RELEASED)
+    def on_leftstick_motion(self, controller: Controller, motion: pyglet.math.Vec2):
+        self.handle_stick_motion("left", motion)
+
+    def on_rightstick_motion(self, controller: Controller, motion: pyglet.math.Vec2):
+        self.handle_stick_motion("right", motion)
 
     def on_dpad_motion(self, controller: Controller, motion: pyglet.math.Vec2):
         self.active_device = InputDevice.CONTROLLER
 
-    def on_trigger_motion(self, controller: Controller, trigger_name: str, value: float):
+    def handle_trigger_motion(self, trigger_name: str, value: float):
         self.active_device = InputDevice.CONTROLLER
 
+    def on_lefttrigger_motion(self, controller: Controller, value: float):
+        self.handle_trigger_motion("left", value)
+
+    def on_righttrigger_motion(self, controller: Controller, value: float):
+        self.handle_trigger_motion("right", value)
+
     def update(self):
+        """
+        Updates axis inputs, all axis values will remain unchanged unless this function is called, usually during on_update.
+        """
         for name in self.axes.keys():
             self.axes_state[name] = 0
 
         if self.controller and self.active_device == InputDevice.CONTROLLER:
             for name, axis in self.axes.items():
                 for mapping in tuple(axis._mappings):
-                    if mapping._input_type == InputType.CONTROLLER_AXIS:
+                    if mapping._input_type == InputType.CONTROLLER_AXIS_SINGLE:
                         scale = mapping._scale
                         input = getattr(self.controller, mapping._input.value)  # type: ignore
+                        if input > self.controller_deadzone or input < -self.controller_deadzone:
+                            self.axes_state[name] = input * scale
+                    if mapping._input_type == InputType.CONTROLLER_AXIS_DOUBLE:
+                        scale = mapping._scale
+                        direction = mapping._input.value[-1].lower()
+                        input = getattr(
+                            getattr(self.controller, mapping._input.value[:-1]), direction
+                        )
                         if input > self.controller_deadzone or input < -self.controller_deadzone:
                             self.axes_state[name] = input * scale
                     if mapping._input_type == InputType.CONTROLLER_BUTTON:
