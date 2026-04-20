@@ -144,6 +144,11 @@ class Window(pyglet.window.Window):
         file_drops:
             Should the window listen for file drops? If True, the window will dispatch
             ``on_file_drop`` events when files are dropped onto the window.
+        pixel_perfect:
+            If True, ignore OS DPI scaling and use a 1:1 pixel ratio.
+            The window and framebuffer will be created at exactly the
+            requested size. The window may appear smaller on HiDPI
+            displays, but rendering will be pixel-perfect.
         **kwargs:
             Further keyword arguments are passed to the pyglet window constructor.
             This can be used to set advanced options that aren't explicitly handled by Arcade.
@@ -175,12 +180,16 @@ class Window(pyglet.window.Window):
         fixed_rate: float = 1.0 / 60.0,
         fixed_frame_cap: int | None = None,
         file_drops: bool = False,
+        pixel_perfect: bool = False,
         **kwargs,
     ) -> None:
         # In certain environments we can't have antialiasing/MSAA enabled.
         # Detect replit environment
         if os.environ.get("REPL_ID"):
             antialiasing = False
+
+        if pixel_perfect:
+            pyglet.options.dpi_scaling = "platform"
 
         desired_gl_provider = "opengl"
         if is_pyodide():
@@ -199,6 +208,8 @@ class Window(pyglet.window.Window):
         """Indicates if the window was closed"""
         self.headless: bool = arcade.headless
         """If True, the window is running in headless mode."""
+        self._pixel_perfect: bool = pixel_perfect
+        """If True, ignore OS DPI scaling and use a 1:1 pixel ratio."""
 
         config = None
         # Attempt to make window with antialiasing
@@ -890,6 +901,16 @@ class Window(pyglet.window.Window):
             return True
 
         return EVENT_UNHANDLED
+
+    def get_pixel_ratio(self) -> float:
+        """Return the framebuffer/window size ratio.
+
+        When ``pixel_perfect=True``, this always returns ``1.0`` so that
+        arcade treats the framebuffer as unscaled.
+        """
+        if self._pixel_perfect:
+            return 1.0
+        return super().get_pixel_ratio()
 
     def _on_resize(self, width: int, height: int) -> EVENT_HANDLE_STATE:
         """
